@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/theme.dart';
 import '../core/utils/date_formatter.dart';
 
 class DayCapacityModel {
@@ -13,11 +13,20 @@ class DayCapacityModel {
     required this.limit,
   });
 
+  static int _parseInt(dynamic val, [int defaultValue = 0]) {
+    if (val == null) return defaultValue;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val.trim()) ?? defaultValue;
+    return defaultValue;
+  }
+
   factory DayCapacityModel.fromJson(Map<String, dynamic> json) {
+    final count = json['booked_count'] ?? json['patients_count'] ?? json['count'] ?? json['total_patients'];
+    final limit = json['limit'] ?? json['daily_patient_limit'] ?? json['daily_limit'];
     return DayCapacityModel(
       date: json['date'] as String? ?? '',
-      bookedCount: (json['booked_count'] as num?)?.toInt() ?? 0,
-      limit: (json['limit'] as num?)?.toInt() ?? 30,
+      bookedCount: _parseInt(count, 0),
+      limit: _parseInt(limit, 30),
     );
   }
 
@@ -42,7 +51,7 @@ class DayCapacityModel {
 
   /// Capacity color-coding per frontend requirements:
   /// - Green: < 50%
-  /// - Yellow/Orange: 50–80%
+  /// - Yellow/Orange: 50-80%
   /// - Red: 80%+
   Color get capacityColor {
     if (fillRatio >= 0.80) {
@@ -78,3 +87,9 @@ class DayCapacityModel {
 
   String get capacityLabel => '$bookedCount / $limit patients';
 }
+
+
+
+
+
+

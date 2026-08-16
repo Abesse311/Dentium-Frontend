@@ -15,13 +15,22 @@ class InvoiceItemModel {
     required this.amount,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val.trim().replaceAll(',', '.')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   factory InvoiceItemModel.fromJson(Map<String, dynamic> json) {
     return InvoiceItemModel(
       id: json['id'] as int?,
       invoiceId: json['invoice_id'] as int?,
       treatmentId: json['treatment_id'] as int?,
       description: json['description'] as String? ?? 'Prestation dentaire',
-      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      amount: _parseDouble(json['amount']),
     );
   }
 
@@ -37,3 +46,9 @@ class InvoiceItemModel {
 
   String get formattedAmount => DateFormatter.formatCurrency(amount);
 }
+
+
+
+
+
+

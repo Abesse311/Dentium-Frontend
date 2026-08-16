@@ -15,14 +15,35 @@ class DashboardMetricsModel {
     this.pendingTreatmentsCount = 0,
   });
 
+  static int _parseInt(dynamic val) {
+    if (val == null) return 0;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val.trim()) ?? 0;
+    return 0;
+  }
+
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val.trim().replaceAll(',', '.')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   factory DashboardMetricsModel.fromJson(Map<String, dynamic> json) {
+    final booked = json['booked_today'] ?? json['patients_booked_today'];
+    final completed = json['completed_today'] ?? json['patients_completed_today'];
+    final noShow = json['no_show_today'] ?? json['patients_no_show_today'];
+    final income = json['income_today'] ?? json['today_income'];
+    final pending = json['pending_treatments_count'];
+
     return DashboardMetricsModel(
-      bookedToday: (json['booked_today'] as num?)?.toInt() ?? 0,
-      completedToday: (json['completed_today'] as num?)?.toInt() ?? 0,
-      noShowToday: (json['no_show_today'] as num?)?.toInt() ?? 0,
-      incomeToday: (json['income_today'] as num?)?.toDouble() ?? 0.0,
-      pendingTreatmentsCount:
-          (json['pending_treatments_count'] as num?)?.toInt() ?? 0,
+      bookedToday: _parseInt(booked),
+      completedToday: _parseInt(completed),
+      noShowToday: _parseInt(noShow),
+      incomeToday: _parseDouble(income),
+      pendingTreatmentsCount: _parseInt(pending),
     );
   }
 
@@ -45,3 +66,9 @@ class DashboardMetricsModel {
 
   String get formattedIncome => DateFormatter.formatCurrency(incomeToday);
 }
+
+
+
+
+
+

@@ -37,10 +37,12 @@ dependencies:
   google_fonts: ^6.2.1
   get: ^4.7.2
   dio: ^5.8.0+1
+  flutter_localizations:
+    sdk: flutter
   intl: ^0.20.2
   flutter_animate: ^4.5.2
   flutter_svg: ^2.0.17
-  table_calendar: ^3.1.3
+  calendar_date_picker2: ^3.0.0
 
 dev_dependencies:
   flutter_test:

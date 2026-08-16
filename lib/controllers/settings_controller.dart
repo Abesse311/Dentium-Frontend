@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/theme.dart';
 import '../data/settings_api.dart';
 import '../models/clinic_settings_model.dart';
 import '../models/treatment_type_model.dart';
+import 'dashboard_controller.dart';
+import 'treatments_controller.dart';
 
 class SettingsController extends GetxController {
   static SettingsController get to => Get.find();
@@ -45,6 +47,10 @@ class SettingsController extends GetxController {
     try {
       final updated = await _api.updateSettings(newSettings);
       settings.value = updated;
+      if (Get.isRegistered<DashboardController>()) {
+        // daily_patient_limit may have changed — refresh capacity strip
+        Get.find<DashboardController>().fetchDashboardData();
+      }
       Get.snackbar(
         'Paramètres enregistrés',
         'Les informations du cabinet ont été mises à jour.',
@@ -80,6 +86,9 @@ class SettingsController extends GetxController {
         final created = await _api.createTreatmentType(type);
         treatmentTypes.add(created);
       }
+      if (Get.isRegistered<TreatmentsController>()) {
+        Get.find<TreatmentsController>().treatmentTypes.assignAll(treatmentTypes);
+      }
       Get.snackbar(
         'Catalogue mis à jour',
         'L\'acte "${type.name}" a été enregistré.',
@@ -108,6 +117,9 @@ class SettingsController extends GetxController {
     try {
       await _api.deleteTreatmentType(id);
       treatmentTypes.removeWhere((t) => t.id == id);
+      if (Get.isRegistered<TreatmentsController>()) {
+        Get.find<TreatmentsController>().treatmentTypes.assignAll(treatmentTypes);
+      }
       Get.snackbar(
         'Acte supprimé',
         'L\'acte a été retiré du catalogue.',
@@ -126,3 +138,9 @@ class SettingsController extends GetxController {
     }
   }
 }
+
+
+
+
+
+

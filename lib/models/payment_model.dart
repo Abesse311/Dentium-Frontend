@@ -1,4 +1,4 @@
-import '../core/constants/status_labels.dart';
+import 'package:flutter_application_1/core/constants.dart';
 import '../core/utils/date_formatter.dart';
 
 class PaymentModel {
@@ -18,11 +18,20 @@ class PaymentModel {
     this.notes,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val.trim().replaceAll(',', '.')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   factory PaymentModel.fromJson(Map<String, dynamic> json) {
     return PaymentModel(
       id: json['id'] as int?,
-      invoiceId: json['invoice_id'] as int,
-      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      invoiceId: json['invoice_id'] as int? ?? 0,
+      amount: _parseDouble(json['amount']),
       paymentDate: json['payment_date'] as String? ?? '',
       paymentMethod: json['payment_method'] as String? ?? 'cash',
       notes: json['notes'] as String?,
@@ -50,3 +59,9 @@ class PaymentModel {
     return DateFormatter.formatMedium(parsed);
   }
 }
+
+
+
+
+
+

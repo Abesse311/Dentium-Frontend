@@ -1,4 +1,4 @@
-class AppConstants {
+﻿class AppConstants {
   // Base API configuration
   static const String apiBaseUrl = 'http://127.0.0.1:8000';
   static const Duration connectTimeout = Duration(seconds: 5);
@@ -20,3 +20,9 @@ class AppConstants {
   static const String endpointInvoices = '/invoices';
   static const String endpointDashboardToday = '/dashboard/today';
 }
+
+
+
+
+
+

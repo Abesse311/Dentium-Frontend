@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+﻿import 'package:intl/intl.dart';
 
 class DateFormatter {
   static final DateFormat _fullDateFormat = DateFormat('EEEE d MMMM yyyy', 'fr_FR');
@@ -53,3 +53,9 @@ class DateFormatter {
     return '${_currencyFormat.format(amount)} $currency';
   }
 }
+
+
+
+
+
+

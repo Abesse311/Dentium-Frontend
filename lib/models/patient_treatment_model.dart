@@ -27,6 +27,15 @@ class PatientTreatmentModel {
     this.createdAt,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val.trim().replaceAll(',', '.')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   factory PatientTreatmentModel.fromJson(Map<String, dynamic> json) {
     // Sometimes backend returns treatment_type nested object or treatment_type_name
     String? typeName;
@@ -40,13 +49,13 @@ class PatientTreatmentModel {
 
     return PatientTreatmentModel(
       id: json['id'] as int,
-      patientId: json['patient_id'] as int,
+      patientId: json['patient_id'] as int? ?? 0,
       appointmentId: json['appointment_id'] as int?,
       treatmentTypeId: json['treatment_type_id'] as int? ?? 1,
       treatmentTypeName: typeName,
       toothNumber: json['tooth_number'] as int?,
       status: json['status'] as String? ?? 'planned',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      price: _parseDouble(json['price']),
       treatmentDate: json['treatment_date'] as String?,
       notes: json['notes'] as String?,
       createdAt: json['created_at'] as String?,
@@ -80,3 +89,9 @@ class PatientTreatmentModel {
     return DateFormatter.formatMedium(parsed);
   }
 }
+
+
+
+
+
+

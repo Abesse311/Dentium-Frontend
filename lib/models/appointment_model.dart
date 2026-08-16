@@ -1,4 +1,4 @@
-import '../core/utils/date_formatter.dart';
+﻿import '../core/utils/date_formatter.dart';
 
 class AppointmentModel {
   final int? id;
@@ -93,3 +93,9 @@ class AppointmentModel {
     return DateFormatter.formatFull(parsed);
   }
 }
+
+
+
+
+
+

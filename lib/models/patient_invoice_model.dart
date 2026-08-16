@@ -21,14 +21,23 @@ class PatientInvoiceModel {
     this.createdAt,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val.trim().replaceAll(',', '.')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   factory PatientInvoiceModel.fromJson(Map<String, dynamic> json) {
     return PatientInvoiceModel(
       id: json['id'] as int,
-      patientId: json['patient_id'] as int,
+      patientId: json['patient_id'] as int? ?? 0,
       invoiceNumber: json['invoice_number'] as String? ?? 'FAC-${json['id']}',
       invoiceDate: json['invoice_date'] as String?,
-      totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
-      paidAmount: (json['paid_amount'] as num?)?.toDouble() ?? 0.0,
+      totalAmount: _parseDouble(json['total_amount']),
+      paidAmount: _parseDouble(json['paid_amount']),
       status: json['status'] as String? ?? 'unpaid',
       createdAt: json['created_at'] as String?,
     );
@@ -58,3 +67,9 @@ class PatientInvoiceModel {
     return DateFormatter.formatMedium(parsed);
   }
 }
+
+
+
+
+
+

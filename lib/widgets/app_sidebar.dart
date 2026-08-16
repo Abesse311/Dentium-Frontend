@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
-import '../core/constants/app_constants.dart';
-import '../theme/app_theme.dart';
+import 'package:flutter_application_1/core/constants.dart';
+import 'package:flutter_application_1/core/theme.dart';
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -290,3 +290,9 @@ class _SidebarItemWidgetState extends State<_SidebarItemWidget> {
     return child;
   }
 }
+
+
+
+
+
+

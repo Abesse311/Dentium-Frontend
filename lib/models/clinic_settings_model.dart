@@ -1,4 +1,4 @@
-class ClinicSettingsModel {
+﻿class ClinicSettingsModel {
   final int id;
   final String clinicName;
   final String? doctorName;
@@ -60,3 +60,9 @@ class ClinicSettingsModel {
     );
   }
 }
+
+
+
+
+
+

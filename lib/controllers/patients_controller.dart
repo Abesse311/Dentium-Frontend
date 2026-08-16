@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/theme.dart';
 import '../data/patients_api.dart';
 import '../models/patient_invoice_model.dart';
 import '../models/patient_model.dart';
 import '../models/patient_treatment_model.dart';
+import 'dashboard_controller.dart';
 
 class PatientsController extends GetxController {
   static PatientsController get to => Get.find();
@@ -118,6 +119,9 @@ class PatientsController extends GetxController {
       patients.insert(0, created);
       _applySearch();
       selectPatient(created);
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
       Get.snackbar(
         'Succès',
         'Patient ${created.fullName} ajouté avec succès.',
@@ -155,6 +159,9 @@ class PatientsController extends GetxController {
       if (selectedPatient.value?.id == id) {
         selectedPatient.value = updated;
       }
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
       Get.snackbar(
         'Succès',
         'Informations de ${updated.fullName} mises à jour.',
@@ -184,13 +191,15 @@ class PatientsController extends GetxController {
     isLoading.value = true;
     try {
       await _api.deletePatient(id);
-      final deleted = patients.firstWhereOrNull((p) => p.id == id);
       patients.removeWhere((p) => p.id == id);
       _applySearch();
       if (selectedPatient.value?.id == id) {
         selectedPatient.value = filteredPatients.isNotEmpty
             ? filteredPatients.first
             : null;
+      }
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
       }
       Get.snackbar(
         'Suppression',
@@ -216,3 +225,9 @@ class PatientsController extends GetxController {
     }
   }
 }
+
+
+
+
+
+

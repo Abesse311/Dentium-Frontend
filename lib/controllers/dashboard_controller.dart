@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/theme.dart';
 import '../core/utils/date_formatter.dart';
 import '../data/appointments_api.dart';
 import '../data/dashboard_api.dart';
 import '../models/appointment_model.dart';
 import '../models/dashboard_metrics_model.dart';
+import 'appointments_controller.dart';
 
 class DashboardController extends GetxController {
   static DashboardController get to => Get.find();
@@ -56,6 +56,9 @@ class DashboardController extends GetxController {
         todayAppointments[idx] = updated;
       }
       fetchDashboardData(); // Refresh KPI counts
+      if (Get.isRegistered<AppointmentsController>()) {
+        Get.find<AppointmentsController>().loadData();
+      }
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -75,6 +78,9 @@ class DashboardController extends GetxController {
         todayAppointments[idx] = updated;
       }
       fetchDashboardData();
+      if (Get.isRegistered<AppointmentsController>()) {
+        Get.find<AppointmentsController>().loadData();
+      }
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -86,3 +92,9 @@ class DashboardController extends GetxController {
     }
   }
 }
+
+
+
+
+
+

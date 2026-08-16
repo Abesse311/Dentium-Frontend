@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/theme.dart';
 import '../data/patients_api.dart';
 import '../data/treatments_api.dart';
 import '../models/patient_model.dart';
 import '../models/treatment_model.dart';
 import '../models/treatment_type_model.dart';
+import 'dashboard_controller.dart';
 
 class TreatmentsController extends GetxController {
   static TreatmentsController get to => Get.find();
@@ -47,6 +48,13 @@ class TreatmentsController extends GetxController {
     } finally {
       isTypesLoading.value = false;
     }
+  }
+
+  Future<void> fetchTreatmentTypes() async {
+    try {
+      final list = await _api.getTreatmentTypes();
+      treatmentTypes.value = list;
+    } catch (_) {}
   }
 
   /// Select active patient and reload their dental chart treatments
@@ -121,9 +129,52 @@ class TreatmentsController extends GetxController {
     try {
       final created = await _api.createTreatment(treatment);
       patientTreatments.insert(0, created);
+
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
+
       Get.snackbar(
         'Soin enregistré',
         'Le traitement a été ajouté au dossier.',
+        backgroundColor: AppColors.successLight,
+        colorText: AppColors.success,
+        icon: const Icon(Icons.check_circle_rounded, color: AppColors.success),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        e.toString(),
+        backgroundColor: AppColors.dangerLight,
+        colorText: AppColors.danger,
+        icon: const Icon(Icons.error_outline_rounded, color: AppColors.danger),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Update an existing treatment
+  Future<bool> updateTreatment(int id, TreatmentModel treatment) async {
+    isLoading.value = true;
+    try {
+      final updated = await _api.updateTreatment(id, treatment);
+      final index = patientTreatments.indexWhere((t) => t.id == id);
+      if (index != -1) {
+        patientTreatments[index] = updated;
+      }
+
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
+
+      Get.snackbar(
+        'Soin mis à jour',
+        'Le traitement a été modifié.',
         backgroundColor: AppColors.successLight,
         colorText: AppColors.success,
         icon: const Icon(Icons.check_circle_rounded, color: AppColors.success),
@@ -150,6 +201,11 @@ class TreatmentsController extends GetxController {
     try {
       await _api.deleteTreatment(id);
       patientTreatments.removeWhere((t) => t.id == id);
+
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
+
       Get.snackbar(
         'Soin supprimé',
         'Le traitement a été retiré du dossier.',
@@ -167,4 +223,18 @@ class TreatmentsController extends GetxController {
       );
     }
   }
+
+  /// Quick-update only the status of a treatment (planned → in_progress → completed)
+  Future<void> updateTreatmentStatus(TreatmentModel treatment, String newStatus) async {
+    if (treatment.id == null) return;
+    final updated = treatment.copyWith(status: newStatus);
+    await updateTreatment(treatment.id!, updated);
+  }
 }
+
+
+
+
+
+
+

@@ -111,4 +111,19 @@ class PatientModel {
     if (parsed == null) return birthDate!;
     return DateFormatter.formatMedium(parsed);
   }
+
+  // --- Equality based on id so DropdownButton can match instances ---
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PatientModel && other.id != null && id != null && other.id == id);
+
+  @override
+  int get hashCode => id.hashCode;
 }
+
+
+
+
+
+

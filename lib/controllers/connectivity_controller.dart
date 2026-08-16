@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:get/get.dart';
-import '../core/api/api_client.dart';
+import 'package:flutter_application_1/core/api_client.dart';
 
 class ConnectivityController extends GetxController {
   static ConnectivityController get to => Get.find();
@@ -45,3 +45,9 @@ class ConnectivityController extends GetxController {
     }
   }
 }
+
+
+
+
+
+

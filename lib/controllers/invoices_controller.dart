@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/theme.dart';
 import '../data/invoices_api.dart';
 import '../models/invoice_model.dart';
 import '../models/payment_model.dart';
+import 'dashboard_controller.dart';
 
 class InvoicesController extends GetxController {
   static InvoicesController get to => Get.find();
@@ -121,6 +122,10 @@ class InvoicesController extends GetxController {
       _applyFilters();
       selectInvoice(created);
 
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
+
       Get.snackbar(
         'Facture créée',
         'Facture ${created.invoiceNumber} générée avec succès.',
@@ -151,6 +156,10 @@ class InvoicesController extends GetxController {
     try {
       await _api.addPayment(invoiceId, payment);
       await fetchInvoiceDetail(invoiceId);
+
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
 
       Get.snackbar(
         'Paiement enregistré',
@@ -186,6 +195,9 @@ class InvoicesController extends GetxController {
         selectedInvoice.value =
             filteredInvoices.isNotEmpty ? filteredInvoices.first : null;
       }
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
       Get.snackbar(
         'Facture supprimée',
         'La facture a été supprimée.',
@@ -204,3 +216,9 @@ class InvoicesController extends GetxController {
     }
   }
 }
+
+
+
+
+
+

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/theme.dart';
 import '../core/utils/date_formatter.dart';
 import '../data/appointments_api.dart';
 import '../models/appointment_model.dart';
 import '../models/day_capacity_model.dart';
+import 'dashboard_controller.dart';
 
 class AppointmentsController extends GetxController {
   static AppointmentsController get to => Get.find();
@@ -164,6 +165,15 @@ class AppointmentsController extends GetxController {
     await _updateAppointmentStatus(appointmentId, 'booked', 'Rendez-vous réinitialisé à réservé.');
   }
 
+  /// Fetch appointments for a specific date
+  Future<List<AppointmentModel>> getAppointmentsForDate(String dateStr) async {
+    try {
+      return await _api.getAppointmentsForDate(dateStr);
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<void> _updateAppointmentStatus(
     int appointmentId,
     String newStatus,
@@ -185,6 +195,9 @@ class AppointmentsController extends GetxController {
         duration: const Duration(seconds: 2),
       );
       fetchWeekCapacity(); // refresh capacity count
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -210,6 +223,9 @@ class AppointmentsController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
       fetchWeekCapacity();
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -246,6 +262,9 @@ class AppointmentsController extends GetxController {
       }
 
       fetchWeekCapacity();
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
 
       Get.snackbar(
         'Rendez-vous confirmé',
@@ -257,15 +276,32 @@ class AppointmentsController extends GetxController {
       );
       return true;
     } catch (e) {
+      final msg = e.toString();
+      final isDuplicate = msg.contains('409') ||
+          msg.toLowerCase().contains('déjà') ||
+          msg.toLowerCase().contains('already') ||
+          msg.toLowerCase().contains('conflict');
       Get.snackbar(
-        'Erreur de réservation',
-        e.toString(),
-        backgroundColor: AppColors.dangerLight,
-        colorText: AppColors.danger,
-        icon: const Icon(Icons.error_outline_rounded, color: AppColors.danger),
+        isDuplicate ? 'Rendez-vous existant' : 'Erreur de réservation',
+        isDuplicate
+            ? 'Ce patient a déjà un rendez-vous prévu pour cette date.'
+            : msg,
+        backgroundColor: isDuplicate ? AppColors.warningLight : AppColors.dangerLight,
+        colorText: isDuplicate ? AppColors.warningDark : AppColors.danger,
+        icon: Icon(
+          isDuplicate ? Icons.warning_amber_rounded : Icons.error_outline_rounded,
+          color: isDuplicate ? AppColors.warning : AppColors.danger,
+        ),
         snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
       );
       return false;
     }
   }
 }
+
+
+
+
+
+

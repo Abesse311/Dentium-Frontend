@@ -27,6 +27,15 @@ class TreatmentModel {
     this.createdAt,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val.trim().replaceAll(',', '.')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   factory TreatmentModel.fromJson(Map<String, dynamic> json) {
     String? typeName;
     if (json.containsKey('treatment_type') && json['treatment_type'] is Map) {
@@ -39,13 +48,13 @@ class TreatmentModel {
 
     return TreatmentModel(
       id: json['id'] as int?,
-      patientId: json['patient_id'] as int,
+      patientId: json['patient_id'] as int? ?? 0,
       appointmentId: json['appointment_id'] as int?,
       treatmentTypeId: json['treatment_type_id'] as int? ?? 1,
       treatmentTypeName: typeName,
       toothNumber: json['tooth_number'] as int?,
       status: json['status'] as String? ?? 'planned',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      price: _parseDouble(json['price']),
       treatmentDate: json['treatment_date'] as String?,
       notes: json['notes'] as String?,
       createdAt: json['created_at'] as String?,
@@ -98,7 +107,7 @@ class TreatmentModel {
 
   String get displayName => treatmentTypeName ?? 'Traitement #$treatmentTypeId';
 
-  String get toothLabel => isGeneral ? 'Soins Général' : 'Dent $toothNumber';
+  String get toothLabel => isGeneral ? 'Soin Général' : 'Dent $toothNumber';
 
   String get formattedPrice => DateFormatter.formatCurrency(price);
 
@@ -109,3 +118,9 @@ class TreatmentModel {
     return DateFormatter.formatMedium(parsed);
   }
 }
+
+
+
+
+
+

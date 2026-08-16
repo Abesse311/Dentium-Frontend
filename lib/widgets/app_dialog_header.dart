@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/theme.dart';
 
 class AppDialogHeader extends StatelessWidget {
   final String title;
@@ -72,3 +72,9 @@ class AppDialogHeader extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+

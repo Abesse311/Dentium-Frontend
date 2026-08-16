@@ -1,6 +1,6 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import 'package:flutter_application_1/core/theme.dart';
 
 class SearchInput extends StatefulWidget {
   final String hintText;
@@ -83,3 +83,9 @@ class _SearchInputState extends State<SearchInput> {
     );
   }
 }
+
+
+
+
+
+

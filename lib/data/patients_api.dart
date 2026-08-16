@@ -1,5 +1,5 @@
-import '../core/api/api_client.dart';
-import '../core/constants/app_constants.dart';
+﻿import 'package:flutter_application_1/core/api_client.dart';
+import 'package:flutter_application_1/core/constants.dart';
 import '../models/patient_invoice_model.dart';
 import '../models/patient_model.dart';
 import '../models/patient_treatment_model.dart';
@@ -102,3 +102,9 @@ class PatientsApi {
     }
   }
 }
+
+
+
+
+
+

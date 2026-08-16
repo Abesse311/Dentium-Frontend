@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dashboard_controller.dart';
+import 'patients_controller.dart';
+import 'appointments_controller.dart';
+import 'treatments_controller.dart';
+import 'invoices_controller.dart';
+import 'settings_controller.dart';
 
 class NavItem {
   final String titleFr;
@@ -63,6 +69,40 @@ class NavigationController extends GetxController {
   void changeIndex(int index) {
     if (index >= 0 && index < navItems.length) {
       selectedIndex.value = index;
+
+      // Auto-refresh data when switching to the selected tab
+      switch (index) {
+        case 0:
+          if (Get.isRegistered<DashboardController>()) {
+            Get.find<DashboardController>().fetchDashboardData();
+          }
+          break;
+        case 1:
+          if (Get.isRegistered<PatientsController>()) {
+            Get.find<PatientsController>().fetchPatients();
+          }
+          break;
+        case 2:
+          if (Get.isRegistered<AppointmentsController>()) {
+            Get.find<AppointmentsController>().loadData();
+          }
+          break;
+        case 3:
+          if (Get.isRegistered<TreatmentsController>()) {
+            Get.find<TreatmentsController>().loadInitialData();
+          }
+          break;
+        case 4:
+          if (Get.isRegistered<InvoicesController>()) {
+            Get.find<InvoicesController>().fetchInvoices();
+          }
+          break;
+        case 5:
+          if (Get.isRegistered<SettingsController>()) {
+            Get.find<SettingsController>().fetchSettings();
+          }
+          break;
+      }
     }
   }
 
@@ -72,3 +112,9 @@ class NavigationController extends GetxController {
 
   String get currentTitle => navItems[selectedIndex.value].titleFr;
 }
+
+
+
+
+
+
