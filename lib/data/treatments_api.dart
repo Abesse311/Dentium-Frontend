@@ -1,4 +1,4 @@
-﻿import 'package:flutter_application_1/core/api_client.dart';
+import 'package:flutter_application_1/core/api_client.dart';
 import 'package:flutter_application_1/core/constants.dart';
 import '../models/treatment_model.dart';
 import '../models/treatment_type_model.dart';
@@ -6,13 +6,41 @@ import '../models/treatment_type_model.dart';
 class TreatmentsApi {
   final ApiClient _client = ApiClient.instance;
 
-  /// Fetch all treatment types catalog
-  Future<List<TreatmentTypeModel>> getTreatmentTypes() async {
+  /// Fetch all treatment types catalog (optionally filtered by category: 'general' | 'per_tooth')
+  Future<List<TreatmentTypeModel>> getTreatmentTypes({String? category}) async {
     try {
-      final response = await _client.dio.get(AppConstants.endpointTreatmentTypes);
+      final response = await _client.dio.get(
+        AppConstants.endpointTreatmentTypes,
+        queryParameters: category != null ? {'category': category} : null,
+      );
       final List data = response.data as List;
       return data
           .map((json) => TreatmentTypeModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ApiClient.handleError(e);
+    }
+  }
+
+  /// List and filter treatments across all patients (e.g. status: 'planned', 'in_progress')
+  Future<List<TreatmentModel>> getTreatments({
+    String? status,
+    int? patientId,
+    int? toothNumber,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParams = {};
+      if (status != null) queryParams['status'] = status;
+      if (patientId != null) queryParams['patient_id'] = patientId;
+      if (toothNumber != null) queryParams['tooth_number'] = toothNumber;
+
+      final response = await _client.dio.get(
+        AppConstants.endpointTreatments,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+      final List data = response.data as List;
+      return data
+          .map((json) => TreatmentModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       throw ApiClient.handleError(e);

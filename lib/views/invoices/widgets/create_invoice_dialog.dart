@@ -167,16 +167,20 @@ class _CreateInvoiceDialogState extends State<CreateInvoiceDialog> {
             else
               DropdownButtonFormField<PatientModel>(
                 initialValue: _selectedPatient,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
-                hint: Text('Choisir le patient à facturer', style: AppTypography.bodyMedium),
+                hint: Text('Choisir le patient à facturer',
+                    style: AppTypography.bodyMedium,
+                    overflow: TextOverflow.ellipsis),
                 items: _allPatients.map((p) {
                   return DropdownMenuItem<PatientModel>(
                     value: p,
                     child: Text(
                       '${p.fullName} (${p.phone ?? 'Sans téléphone'})',
+                      overflow: TextOverflow.ellipsis,
                     ),
                   );
                 }).toList(),

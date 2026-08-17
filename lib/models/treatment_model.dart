@@ -3,6 +3,8 @@ import '../core/utils/date_formatter.dart';
 class TreatmentModel {
   final int? id;
   final int patientId;
+  final String? patientName;
+  final String? patientPhone;
   final int? appointmentId;
   final int treatmentTypeId;
   final String? treatmentTypeName;
@@ -16,6 +18,8 @@ class TreatmentModel {
   const TreatmentModel({
     this.id,
     required this.patientId,
+    this.patientName,
+    this.patientPhone,
     this.appointmentId,
     required this.treatmentTypeId,
     this.treatmentTypeName,
@@ -46,9 +50,19 @@ class TreatmentModel {
       typeName = json['name'] as String?;
     }
 
+    String? pName = json['patient_name'] as String?;
+    String? pPhone = json['patient_phone'] as String?;
+    if (json.containsKey('patient') && json['patient'] is Map) {
+      final p = json['patient'] as Map<String, dynamic>;
+      pName ??= p['full_name'] as String?;
+      pPhone ??= p['phone'] as String?;
+    }
+
     return TreatmentModel(
       id: json['id'] as int?,
       patientId: json['patient_id'] as int? ?? 0,
+      patientName: pName,
+      patientPhone: pPhone,
       appointmentId: json['appointment_id'] as int?,
       treatmentTypeId: json['treatment_type_id'] as int? ?? 1,
       treatmentTypeName: typeName,
@@ -78,6 +92,8 @@ class TreatmentModel {
   TreatmentModel copyWith({
     int? id,
     int? patientId,
+    String? patientName,
+    String? patientPhone,
     int? appointmentId,
     int? treatmentTypeId,
     String? treatmentTypeName,
@@ -91,6 +107,8 @@ class TreatmentModel {
     return TreatmentModel(
       id: id ?? this.id,
       patientId: patientId ?? this.patientId,
+      patientName: patientName ?? this.patientName,
+      patientPhone: patientPhone ?? this.patientPhone,
       appointmentId: appointmentId ?? this.appointmentId,
       treatmentTypeId: treatmentTypeId ?? this.treatmentTypeId,
       treatmentTypeName: treatmentTypeName ?? this.treatmentTypeName,

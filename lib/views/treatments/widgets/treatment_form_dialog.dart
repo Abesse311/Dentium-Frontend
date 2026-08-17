@@ -61,13 +61,26 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
     31, 32, 33, 34, 35, 36, 37, 38,
   ];
 
+  bool get isPerToothFlow =>
+      widget.initialToothNumber != null ||
+      widget.initialTreatment?.toothNumber != null;
+
+  List<TreatmentTypeModel> get availableTreatmentTypes {
+    final controller = Get.find<TreatmentsController>();
+    return isPerToothFlow
+        ? controller.perToothTreatmentTypes
+        : controller.generalTreatmentTypes;
+  }
+
   @override
   void initState() {
     super.initState();
     final t = widget.initialTreatment;
     final controller = Get.find<TreatmentsController>();
 
-    _selectedToothNumber = t?.toothNumber ?? widget.initialToothNumber;
+    _selectedToothNumber = isPerToothFlow
+        ? (t?.toothNumber ?? widget.initialToothNumber)
+        : null;
     _selectedStatus = t?.status ?? 'completed';
     _selectedDate = t?.treatmentDate != null
         ? DateFormatter.fromApiString(t!.treatmentDate) ?? DateTime.now()
@@ -78,13 +91,17 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
     );
     _notesController = TextEditingController(text: t?.notes ?? '');
 
+    final available = availableTreatmentTypes;
+
     // Select initial treatment type
     if (t != null) {
-      _selectedType = controller.treatmentTypes.firstWhereOrNull(
+      _selectedType = available.firstWhereOrNull(
+        (type) => type.id == t.treatmentTypeId,
+      ) ?? controller.treatmentTypes.firstWhereOrNull(
         (type) => type.id == t.treatmentTypeId,
       );
-    } else if (controller.treatmentTypes.isNotEmpty) {
-      _selectedType = controller.treatmentTypes.first;
+    } else if (available.isNotEmpty) {
+      _selectedType = available.first;
       _priceController.text = '${_selectedType!.defaultPrice}';
     }
   }
@@ -111,7 +128,7 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
       initialDate: _selectedDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      helpText: 'Date de l\'acte dentaire',
+      helpText: isPerToothFlow ? 'Date de l\'acte dentaire' : 'Date du soin général',
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -134,6 +151,7 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
     final price = double.tryParse(_priceController.text.trim()) ?? _selectedType!.defaultPrice;
     final controller = Get.find<TreatmentsController>();
     final isEditing = widget.initialTreatment != null;
+    final toothNum = isPerToothFlow ? _selectedToothNumber : null;
 
     setState(() => _isSubmitting = true);
 
@@ -145,7 +163,7 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
           id: widget.initialTreatment!.id,
           patientId: widget.patient.id!,
           treatmentTypeId: _selectedType!.id!,
-          toothNumber: _selectedToothNumber,
+          toothNumber: toothNum,
           status: _selectedStatus,
           price: price,
           treatmentDate: DateFormatter.toApiString(_selectedDate),
@@ -157,7 +175,7 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
         TreatmentModel(
           patientId: widget.patient.id!,
           treatmentTypeId: _selectedType!.id!,
-          toothNumber: _selectedToothNumber,
+          toothNumber: toothNum,
           status: _selectedStatus,
           price: price,
           treatmentDate: DateFormatter.toApiString(_selectedDate),
@@ -176,13 +194,25 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<TreatmentsController>();
     final isEditing = widget.initialTreatment != null;
+    final typesList = availableTreatmentTypes;
+
+    final dialogTitle = isEditing
+        ? (isPerToothFlow
+            ? 'Modifier l\'Acte — Dent ${_selectedToothNumber ?? widget.initialToothNumber}'
+            : 'Modifier le Soin Général')
+        : (isPerToothFlow
+            ? 'Nouvel Acte — Dent ${_selectedToothNumber ?? widget.initialToothNumber}'
+            : 'Nouveau Soin Général');
+
+    final dialogSubtitle = isPerToothFlow
+        ? 'Patient : ${widget.patient.fullName} • Dent ${_selectedToothNumber ?? widget.initialToothNumber}'
+        : 'Patient : ${widget.patient.fullName} • Soin général (non lié à une dent)';
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusXxl),
       child: Container(
-        width: 560,
+        width: 600,
         padding: AppSpacing.dialogPaddingLarge,
         child: Form(
           key: _formKey,
@@ -192,11 +222,11 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
             children: [
               // --- Dialog Header ---
               AppDialogHeader(
-                title: isEditing
-                    ? 'Modifier le Soin'
-                    : 'Nouvel Acte / Traitement Dentaire',
-                subtitle: 'Patient : ${widget.patient.fullName}',
-                icon: Icons.medical_services_rounded,
+                title: dialogTitle,
+                subtitle: dialogSubtitle,
+                icon: isPerToothFlow
+                    ? Icons.healing_rounded
+                    : Icons.medical_services_rounded,
               ),
 
               // --- Form Fields ---
@@ -206,81 +236,133 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Tooth Number & Treatment Type Row
-                      Row(
-                        children: [
-                          // Tooth Selection
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Dent ciblée (FDI)',
-                                  style: AppTypography.formLabel,
-                                ),
-                                AppSpacing.vGap6,
-                                DropdownButtonFormField<int?>(
-                                  initialValue: _selectedToothNumber,
-                                  decoration: const InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 12),
+                      if (isPerToothFlow) ...[
+                        Row(
+                          children: [
+                            // Tooth Selection
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Dent ciblée (FDI) *',
+                                    style: AppTypography.formLabel,
                                   ),
-                                  hint: Text('Général / Sans dent', style: AppTypography.bodyMedium),
-                                  items: [
-                                    const DropdownMenuItem<int?>(
-                                      value: null,
-                                      child: Text('Général (Sans dent)'),
+                                  AppSpacing.vGap6,
+                                  DropdownButtonFormField<int?>(
+                                    initialValue: _selectedToothNumber,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 12),
                                     ),
-                                    ...allTeethNumbers.map((t) {
+                                    hint: Text(
+                                      'Choisir la dent',
+                                      style: AppTypography.bodyMedium,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    items: allTeethNumbers.map((t) {
                                       return DropdownMenuItem<int?>(
                                         value: t,
-                                        child: Text('Dent $t'),
+                                        child: Text(
+                                          'Dent $t',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       );
-                                    }),
-                                  ],
-                                  onChanged: (val) =>
-                                      setState(() => _selectedToothNumber = val),
-                                ),
-                              ],
-                            ),
-                          ),
-                          AppSpacing.hGap16,
-
-                          // Treatment Type Dropdown
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Acte / Type de soin *',
-                                  style: AppTypography.formLabel,
-                                ),
-                                AppSpacing.vGap6,
-                                DropdownButtonFormField<TreatmentTypeModel>(
-                                  initialValue: _selectedType,
-                                  decoration: const InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 12),
+                                    }).toList(),
+                                    onChanged: (val) =>
+                                        setState(() => _selectedToothNumber = val),
+                                    validator: (val) {
+                                      if (val == null) {
+                                        return 'Dent requise';
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  hint: Text('Sélectionner l\'acte', style: AppTypography.bodyMedium),
-                                  items: controller.treatmentTypes.map((type) {
-                                    return DropdownMenuItem<TreatmentTypeModel>(
-                                      value: type,
-                                      child: Text(
-                                        '${type.name} (${type.formattedPrice})',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: _onTypeChanged,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            AppSpacing.hGap16,
+
+                            // Per-tooth Treatment Type Dropdown
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Acte par dent *',
+                                    style: AppTypography.formLabel,
+                                  ),
+                                  AppSpacing.vGap6,
+                                  DropdownButtonFormField<TreatmentTypeModel>(
+                                    initialValue: _selectedType,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 12),
+                                    ),
+                                    hint: Text(
+                                      'Sélectionner l\'acte',
+                                      style: AppTypography.bodyMedium,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    items: typesList.map((type) {
+                                      return DropdownMenuItem<TreatmentTypeModel>(
+                                        value: type,
+                                        child: Text(
+                                          '${type.name} (${type.formattedPrice})',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: _onTypeChanged,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        // General Treatment Type Dropdown (Full width)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Type de soin général *',
+                              style: AppTypography.formLabel,
+                            ),
+                            AppSpacing.vGap6,
+                            DropdownButtonFormField<TreatmentTypeModel>(
+                              initialValue: _selectedType,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                                prefixIcon: Icon(Icons.medical_services_outlined, size: 20),
+                              ),
+                              hint: Text(
+                                'Sélectionner le soin général',
+                                style: AppTypography.bodyMedium,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              items: typesList.map((type) {
+                                return DropdownMenuItem<TreatmentTypeModel>(
+                                  value: type,
+                                  child: Text(
+                                    '${type.name} (${type.formattedPrice})',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: _onTypeChanged,
+                            ),
+                          ],
+                        ),
+                      ],
 
                       AppSpacing.vGap16,
 
@@ -300,6 +382,7 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
                                 AppSpacing.vGap6,
                                 DropdownButtonFormField<String>(
                                   initialValue: _selectedStatus,
+                                  isExpanded: true,
                                   decoration: const InputDecoration(
                                     contentPadding: EdgeInsets.symmetric(
                                         horizontal: 14, vertical: 12),
@@ -312,7 +395,12 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
                                           Icon(Icons.check_circle,
                                               color: AppColors.success, size: 16),
                                           SizedBox(width: 8),
-                                          Text('Réalisé / Terminé'),
+                                          Flexible(
+                                            child: Text(
+                                              'Réalisé / Terminé',
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -323,7 +411,12 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
                                           Icon(Icons.timelapse_rounded,
                                               color: AppColors.warning, size: 16),
                                           SizedBox(width: 8),
-                                          Text('En cours'),
+                                          Flexible(
+                                            child: Text(
+                                              'En cours',
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -334,7 +427,12 @@ class _TreatmentFormDialogState extends State<TreatmentFormDialog> {
                                           Icon(Icons.event_outlined,
                                               color: AppColors.info, size: 16),
                                           SizedBox(width: 8),
-                                          Text('Planifié (À faire)'),
+                                          Flexible(
+                                            child: Text(
+                                              'Planifié (À faire)',
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),

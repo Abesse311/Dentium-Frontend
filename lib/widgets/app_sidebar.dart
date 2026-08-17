@@ -21,18 +21,26 @@ class AppSidebar extends StatelessWidget {
         curve: Curves.easeInOut,
         width: width,
         height: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.sidebarBg,
-          border: Border(
-            right: BorderSide(color: AppColors.sidebarHover, width: 1),
+          gradient: AppColors.sidebarGradient,
+          border: const Border(
+            right: BorderSide(color: Color(0x1AFFFFFF), width: 1),
           ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x2A000000),
+              blurRadius: 20,
+              offset: Offset(4, 0),
+            ),
+          ],
         ),
         child: Column(
           children: [
             // --- Clinic Brand Header ---
             _buildBrandHeader(context, isExpanded, navController),
 
-            const Divider(color: AppColors.sidebarHover, height: 1),
+            const Divider(color: Color(0x14FFFFFF), height: 1),
             AppSpacing.vGap16,
 
             // --- Navigation Menu Items ---
@@ -50,7 +58,7 @@ class AppSidebar extends StatelessWidget {
                         onTap: () => navController.changeIndex(index),
                       ),
                       if (index < navController.navItems.length - 1)
-                        AppSpacing.vGap6,
+                        AppSpacing.vGap8,
                     ],
                   ],
                 ),
@@ -58,7 +66,7 @@ class AppSidebar extends StatelessWidget {
             ),
 
             // --- Footer Area ---
-            const Divider(color: AppColors.sidebarHover, height: 1),
+            const Divider(color: Color(0x14FFFFFF), height: 1),
             _buildFooter(isExpanded),
           ],
         ),
@@ -82,11 +90,7 @@ class AppSidebar extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.accent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppColors.primaryGradient,
               borderRadius: AppRadius.borderRadiusXl,
               boxShadow: AppShadows.primaryGlow,
             ),
@@ -161,15 +165,22 @@ class AppSidebar extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.success,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.success.withValues(alpha: 0.5),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
           ),
           AppSpacing.hGap10,
           Expanded(
             child: Text(
-              'v${AppConstants.appVersion} — Local',
+              'v${AppConstants.appVersion} — Connecté',
               style: AppTypography.caption.copyWith(
                 color: AppColors.textOnSidebarMuted,
                 fontWeight: FontWeight.w500,
@@ -205,19 +216,15 @@ class _SidebarItemWidgetState extends State<_SidebarItemWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isSelected
-        ? AppColors.primary
-        : _isHovered
-            ? AppColors.sidebarHover
-            : Colors.transparent;
+    final isSelected = widget.isSelected;
 
-    final iconColor = widget.isSelected
+    final iconColor = isSelected
         ? Colors.white
         : _isHovered
             ? Colors.white
             : AppColors.textOnSidebarMuted;
 
-    final textColor = widget.isSelected
+    final textColor = isSelected
         ? Colors.white
         : _isHovered
             ? Colors.white
@@ -230,14 +237,28 @@ class _SidebarItemWidgetState extends State<_SidebarItemWidget> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: 180),
           padding: EdgeInsets.symmetric(
             horizontal: widget.isExpanded ? AppSpacing.xl : AppSpacing.lg,
             vertical: AppSpacing.xl,
           ),
           decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: AppRadius.borderRadiusLg,
+            gradient: isSelected ? AppColors.primaryGradient : null,
+            color: isSelected
+                ? null
+                : _isHovered
+                    ? AppColors.sidebarHover
+                    : Colors.transparent,
+            borderRadius: AppRadius.borderRadiusXl,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisAlignment: widget.isExpanded
@@ -245,7 +266,7 @@ class _SidebarItemWidgetState extends State<_SidebarItemWidget> {
                 : MainAxisAlignment.center,
             children: [
               Icon(
-                widget.isSelected ? widget.item.selectedIcon : widget.item.icon,
+                isSelected ? widget.item.selectedIcon : widget.item.icon,
                 color: iconColor,
                 size: 22,
               ),
@@ -256,14 +277,13 @@ class _SidebarItemWidgetState extends State<_SidebarItemWidget> {
                     widget.item.titleFr,
                     style: AppTypography.button.copyWith(
                       color: textColor,
-                      fontWeight:
-                          widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (widget.isSelected)
+                if (isSelected)
                   Container(
                     width: 6,
                     height: 6,
@@ -290,9 +310,3 @@ class _SidebarItemWidgetState extends State<_SidebarItemWidget> {
     return child;
   }
 }
-
-
-
-
-
-

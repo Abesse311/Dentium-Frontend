@@ -8,30 +8,10 @@ import '../../widgets/status_badge.dart';
 import 'widgets/odontogram_widget.dart';
 import 'widgets/tooth_detail_panel.dart';
 import 'widgets/treatment_form_dialog.dart';
+import 'widgets/pending_treatments_dialog.dart';
 
 class TreatmentsView extends StatelessWidget {
   const TreatmentsView({super.key});
-
-  Future<void> _openNewTreatmentDialog(BuildContext context) async {
-    final controller = Get.find<TreatmentsController>();
-    final patient = controller.selectedPatient.value;
-    if (patient == null) {
-      Get.snackbar(
-        'Sélectionner un patient',
-        'Veuillez d\'abord sélectionner un patient pour ajouter un soin.',
-        backgroundColor: AppColors.warningLight,
-        colorText: AppColors.warning,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-
-    await TreatmentFormDialog.show(
-      context,
-      patient: patient,
-      toothNumber: controller.selectedToothNumber.value,
-    );
-  }
 
   /// Popup menu: status transitions + delete — shared between general and tooth treatments
   Widget _buildActionMenu(
@@ -215,19 +195,51 @@ class TreatmentsView extends StatelessWidget {
                   ],
                 ),
 
-                // Add Treatment Button
-                ElevatedButton.icon(
-                  onPressed: () => _openNewTreatmentDialog(context),
-                  style: ElevatedButton.styleFrom(
-                    padding: AppSpacing.buttonPaddingLarge,
-                    backgroundColor: AppColors.primary,
-                  ),
-                  icon: const Icon(Icons.add_rounded, size: 20),
-                  label: Text(
-                    'Nouvel Acte Dentaire',
-                    style: AppTypography.button,
-                  ),
-                ),
+                // Top Action Buttons
+                Obx(() {
+                  final count = controller.pendingTreatments.length;
+                  return OutlinedButton.icon(
+                    onPressed: () => PendingTreatmentsDialog.show(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: AppSpacing.buttonPaddingLarge,
+                      foregroundColor: AppColors.warningDark,
+                      side: const BorderSide(color: AppColors.warning),
+                    ),
+                    icon: const Icon(Icons.pending_actions_rounded,
+                        size: 20, color: AppColors.warning),
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Soins en attente',
+                          style: AppTypography.button.copyWith(
+                            color: AppColors.warningDark,
+                          ),
+                        ),
+                        if (count > 0) ...[
+                          AppSpacing.hGap8,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning,
+                              borderRadius: AppRadius.borderRadiusFull,
+                            ),
+                            child: Text(
+                              '$count',
+                              style: AppTypography.badgeSmall.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
 

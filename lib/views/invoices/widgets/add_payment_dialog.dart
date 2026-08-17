@@ -81,7 +81,7 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusXxl),
       child: Container(
-        width: 520,
+        width: 560,
         padding: AppSpacing.dialogPaddingLarge,
         child: Form(
           key: _formKey,
@@ -175,6 +175,7 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
                         AppSpacing.vGap6,
                         DropdownButtonFormField<String>(
                           initialValue: _selectedMethod,
+                          isExpanded: true,
                           decoration: const InputDecoration(
                             contentPadding: EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 12),
@@ -186,7 +187,12 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
                                 children: [
                                   Icon(Icons.money_rounded, size: 18),
                                   SizedBox(width: 8),
-                                  Text('Espèces'),
+                                  Flexible(
+                                    child: Text(
+                                      'Espèces',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -196,7 +202,12 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
                                 children: [
                                   Icon(Icons.credit_card_rounded, size: 18),
                                   SizedBox(width: 8),
-                                  Text('Carte bancaire'),
+                                  Flexible(
+                                    child: Text(
+                                      'Carte bancaire',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -206,7 +217,12 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
                                 children: [
                                   Icon(Icons.account_balance_rounded, size: 18),
                                   SizedBox(width: 8),
-                                  Text('Virement'),
+                                  Flexible(
+                                    child: Text(
+                                      'Virement',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -216,7 +232,12 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
                                 children: [
                                   Icon(Icons.more_horiz_rounded, size: 18),
                                   SizedBox(width: 8),
-                                  Text('Autre'),
+                                  Flexible(
+                                    child: Text(
+                                      'Autre',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

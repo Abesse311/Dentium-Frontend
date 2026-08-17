@@ -1,4 +1,4 @@
-﻿import 'package:flutter_application_1/core/api_client.dart';
+import 'package:flutter_application_1/core/api_client.dart';
 import 'package:flutter_application_1/core/constants.dart';
 import '../models/clinic_settings_model.dart';
 import '../models/treatment_type_model.dart';
@@ -29,10 +29,13 @@ class SettingsApi {
     }
   }
 
-  /// Fetch treatment types catalog
-  Future<List<TreatmentTypeModel>> getTreatmentTypes() async {
+  /// Fetch treatment types catalog (optionally filtered by category: 'general' | 'per_tooth')
+  Future<List<TreatmentTypeModel>> getTreatmentTypes({String? category}) async {
     try {
-      final response = await _client.dio.get(AppConstants.endpointTreatmentTypes);
+      final response = await _client.dio.get(
+        AppConstants.endpointTreatmentTypes,
+        queryParameters: category != null ? {'category': category} : null,
+      );
       final List data = response.data as List;
       return data
           .map((json) => TreatmentTypeModel.fromJson(json as Map<String, dynamic>))

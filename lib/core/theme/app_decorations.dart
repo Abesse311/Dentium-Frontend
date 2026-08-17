@@ -4,12 +4,20 @@ import 'app_radius.dart';
 import 'app_shadows.dart';
 
 class AppDecorations {
-  // Standard Card Decoration
+  // Standard Modern Card Decoration
   static BoxDecoration card = BoxDecoration(
     color: AppColors.surface,
     borderRadius: AppRadius.borderRadiusXxl,
     border: Border.all(color: AppColors.border, width: 1),
-    boxShadow: AppShadows.subtle,
+    boxShadow: AppShadows.card,
+  );
+
+  // Elevated Floating Card Decoration (for KPIs, active elements)
+  static BoxDecoration cardElevated = BoxDecoration(
+    color: AppColors.surface,
+    borderRadius: AppRadius.borderRadiusXxl,
+    border: Border.all(color: AppColors.borderLight, width: 1),
+    boxShadow: AppShadows.floating,
   );
 
   // Compact Card / Panel Decoration
@@ -17,6 +25,7 @@ class AppDecorations {
     color: AppColors.surface,
     borderRadius: AppRadius.borderRadiusXl,
     border: Border.all(color: AppColors.border, width: 1),
+    boxShadow: AppShadows.subtle,
   );
 
   // Background Tone Panel Decoration
@@ -30,17 +39,17 @@ class AppDecorations {
   static BoxDecoration dialog = BoxDecoration(
     color: AppColors.surface,
     borderRadius: AppRadius.borderRadiusXxl,
-    border: Border.all(color: AppColors.border, width: 1),
+    border: Border.all(color: AppColors.borderLight, width: 1),
     boxShadow: AppShadows.dialog,
   );
 
   // Selected / Active List Item
   static BoxDecoration selectedItem = BoxDecoration(
-    color: AppColors.primaryLight,
+    color: AppColors.primaryLight.withValues(alpha: 0.6),
     borderRadius: AppRadius.borderRadiusLg,
     border: Border.all(
-      color: AppColors.primary.withValues(alpha: 0.4),
-      width: 1.2,
+      color: AppColors.primary.withValues(alpha: 0.6),
+      width: 1.5,
     ),
   );
 
@@ -71,7 +80,7 @@ class AppDecorations {
         color: bgColor,
         borderRadius: AppRadius.borderRadiusPill,
         border: Border.all(
-          color: textColor.withValues(alpha: 0.25),
+          color: textColor.withValues(alpha: 0.2),
           width: 1,
         ),
       );
@@ -81,7 +90,7 @@ class AppDecorations {
     color: AppColors.warningLight,
     borderRadius: AppRadius.borderRadiusLg,
     border: Border.all(
-      color: AppColors.warning.withValues(alpha: 0.5),
+      color: AppColors.warning.withValues(alpha: 0.3),
       width: 1,
     ),
   );
@@ -91,14 +100,16 @@ class AppDecorations {
     color: AppColors.warningLight,
     borderRadius: AppRadius.borderRadiusSm,
     border: Border.all(
-      color: AppColors.warning.withValues(alpha: 0.5),
+      color: AppColors.warning.withValues(alpha: 0.3),
       width: 1,
     ),
   );
+
+  // Header / Topbar glass effect
+  static BoxDecoration glassHeader = BoxDecoration(
+    color: AppColors.surface.withValues(alpha: 0.95),
+    border: const Border(
+      bottom: BorderSide(color: AppColors.border, width: 1),
+    ),
+  );
 }
-
-
-
-
-
-

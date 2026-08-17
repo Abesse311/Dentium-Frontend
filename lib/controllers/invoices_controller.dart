@@ -5,6 +5,7 @@ import '../data/invoices_api.dart';
 import '../models/invoice_model.dart';
 import '../models/payment_model.dart';
 import 'dashboard_controller.dart';
+import 'patients_controller.dart';
 
 class InvoicesController extends GetxController {
   static InvoicesController get to => Get.find();
@@ -126,6 +127,13 @@ class InvoicesController extends GetxController {
         Get.find<DashboardController>().fetchDashboardData();
       }
 
+      if (Get.isRegistered<PatientsController>()) {
+        final patientsCtrl = Get.find<PatientsController>();
+        if (patientsCtrl.selectedPatient.value?.id == patientId) {
+          patientsCtrl.fetchPatientHistory(patientId);
+        }
+      }
+
       Get.snackbar(
         'Facture créée',
         'Facture ${created.invoiceNumber} générée avec succès.',
@@ -161,6 +169,14 @@ class InvoicesController extends GetxController {
         Get.find<DashboardController>().fetchDashboardData();
       }
 
+      if (Get.isRegistered<PatientsController>()) {
+        final patientsCtrl = Get.find<PatientsController>();
+        final patientId = selectedInvoice.value?.patientId;
+        if (patientId != null && patientsCtrl.selectedPatient.value?.id == patientId) {
+          patientsCtrl.fetchPatientHistory(patientId);
+        }
+      }
+
       Get.snackbar(
         'Paiement enregistré',
         'Le règlement de ${payment.formattedAmount} a été comptabilisé.',
@@ -188,6 +204,7 @@ class InvoicesController extends GetxController {
   /// Delete an invoice
   Future<void> deleteInvoice(int invoiceId) async {
     try {
+      final removed = invoices.firstWhereOrNull((i) => i.id == invoiceId);
       await _api.deleteInvoice(invoiceId);
       invoices.removeWhere((i) => i.id == invoiceId);
       _applyFilters();
@@ -197,6 +214,14 @@ class InvoicesController extends GetxController {
       }
       if (Get.isRegistered<DashboardController>()) {
         Get.find<DashboardController>().fetchDashboardData();
+      }
+
+      if (Get.isRegistered<PatientsController>()) {
+        final patientsCtrl = Get.find<PatientsController>();
+        final patientId = removed?.patientId ?? selectedInvoice.value?.patientId;
+        if (patientId != null && patientsCtrl.selectedPatient.value?.id == patientId) {
+          patientsCtrl.fetchPatientHistory(patientId);
+        }
       }
       Get.snackbar(
         'Facture supprimée',

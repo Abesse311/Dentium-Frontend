@@ -7,6 +7,8 @@ import '../models/patient_model.dart';
 import '../models/treatment_model.dart';
 import '../models/treatment_type_model.dart';
 import 'dashboard_controller.dart';
+import 'navigation_controller.dart';
+import 'patients_controller.dart';
 
 class TreatmentsController extends GetxController {
   static TreatmentsController get to => Get.find();
@@ -18,11 +20,13 @@ class TreatmentsController extends GetxController {
   final Rxn<PatientModel> selectedPatient = Rxn<PatientModel>();
   final RxList<TreatmentTypeModel> treatmentTypes = <TreatmentTypeModel>[].obs;
   final RxList<TreatmentModel> patientTreatments = <TreatmentModel>[].obs;
+  final RxList<TreatmentModel> pendingTreatments = <TreatmentModel>[].obs;
 
   // Selected tooth (FDI 11-48, null if none selected)
   final RxnInt selectedToothNumber = RxnInt();
 
   final RxBool isLoading = false.obs;
+  final RxBool isPendingLoading = false.obs;
   final RxBool isTypesLoading = false.obs;
   final RxString errorMessage = ''.obs;
 
@@ -42,11 +46,52 @@ class TreatmentsController extends GetxController {
       patients.value = results[0] as List<PatientModel>;
       treatmentTypes.value = results[1] as List<TreatmentTypeModel>;
 
-      if (patients.isNotEmpty && selectedPatient.value == null) {
-        selectPatient(patients.first);
+      if (patients.isNotEmpty) {
+        if (selectedPatient.value == null) {
+          selectPatient(patients.first);
+        } else {
+          final found = patients.firstWhereOrNull((p) => p.id == selectedPatient.value?.id);
+          if (found != null) {
+            selectPatient(found);
+          } else {
+            selectPatient(patients.first);
+          }
+        }
       }
+      fetchPendingTreatments();
     } finally {
       isTypesLoading.value = false;
+    }
+  }
+
+  /// Fetch all pending (planned + in_progress) treatments across patients
+  Future<void> fetchPendingTreatments() async {
+    isPendingLoading.value = true;
+    try {
+      final results = await Future.wait([
+        _api.getTreatments(status: 'planned').catchError((_) => <TreatmentModel>[]),
+        _api.getTreatments(status: 'in_progress').catchError((_) => <TreatmentModel>[]),
+      ]);
+      final List<TreatmentModel> combined = [
+        ...results[0],
+        ...results[1],
+      ];
+
+      // Enrich with patient name/phone from local patient list if needed
+      final enriched = combined.map((t) {
+        if (t.patientName != null && t.patientName!.isNotEmpty) return t;
+        final p = patients.firstWhereOrNull((pat) => pat.id == t.patientId);
+        if (p != null) {
+          return t.copyWith(patientName: p.fullName, patientPhone: p.phone);
+        }
+        return t;
+      }).toList();
+
+      pendingTreatments.value = enriched;
+    } catch (_) {
+      pendingTreatments.clear();
+    } finally {
+      isPendingLoading.value = false;
     }
   }
 
@@ -123,15 +168,33 @@ class TreatmentsController extends GetxController {
     return patientTreatments.where((t) => t.isGeneral).toList();
   }
 
+  /// General care types catalog (not tied to a specific tooth)
+  List<TreatmentTypeModel> get generalTreatmentTypes {
+    return treatmentTypes.where((t) => t.isGeneral).toList();
+  }
+
+  /// Per-tooth care types catalog (tied to a specific FDI tooth)
+  List<TreatmentTypeModel> get perToothTreatmentTypes {
+    return treatmentTypes.where((t) => t.isPerTooth).toList();
+  }
+
   /// Add a new treatment
   Future<bool> createTreatment(TreatmentModel treatment) async {
     isLoading.value = true;
     try {
       final created = await _api.createTreatment(treatment);
       patientTreatments.insert(0, created);
+      fetchPendingTreatments();
 
       if (Get.isRegistered<DashboardController>()) {
         Get.find<DashboardController>().fetchDashboardData();
+      }
+
+      if (Get.isRegistered<PatientsController>()) {
+        final patientsCtrl = Get.find<PatientsController>();
+        if (patientsCtrl.selectedPatient.value?.id == treatment.patientId) {
+          patientsCtrl.fetchPatientHistory(treatment.patientId);
+        }
       }
 
       Get.snackbar(
@@ -167,9 +230,17 @@ class TreatmentsController extends GetxController {
       if (index != -1) {
         patientTreatments[index] = updated;
       }
+      fetchPendingTreatments();
 
       if (Get.isRegistered<DashboardController>()) {
         Get.find<DashboardController>().fetchDashboardData();
+      }
+
+      if (Get.isRegistered<PatientsController>()) {
+        final patientsCtrl = Get.find<PatientsController>();
+        if (patientsCtrl.selectedPatient.value?.id == treatment.patientId) {
+          patientsCtrl.fetchPatientHistory(treatment.patientId);
+        }
       }
 
       Get.snackbar(
@@ -199,11 +270,21 @@ class TreatmentsController extends GetxController {
   /// Delete a treatment
   Future<void> deleteTreatment(int id) async {
     try {
+      final removed = patientTreatments.firstWhereOrNull((t) => t.id == id);
       await _api.deleteTreatment(id);
       patientTreatments.removeWhere((t) => t.id == id);
+      fetchPendingTreatments();
 
       if (Get.isRegistered<DashboardController>()) {
         Get.find<DashboardController>().fetchDashboardData();
+      }
+
+      if (Get.isRegistered<PatientsController>()) {
+        final patientsCtrl = Get.find<PatientsController>();
+        final patientId = removed?.patientId ?? selectedPatient.value?.id;
+        if (patientId != null && patientsCtrl.selectedPatient.value?.id == patientId) {
+          patientsCtrl.fetchPatientHistory(patientId);
+        }
       }
 
       Get.snackbar(
@@ -229,6 +310,30 @@ class TreatmentsController extends GetxController {
     if (treatment.id == null) return;
     final updated = treatment.copyWith(status: newStatus);
     await updateTreatment(treatment.id!, updated);
+    fetchPendingTreatments();
+  }
+
+  /// Navigate directly from anywhere in the app to a patient's odontogram
+  Future<void> openPatientInOdontogram(int patientId, {int? toothNumber}) async {
+    if (Get.isRegistered<NavigationController>()) {
+      Get.find<NavigationController>().selectedIndex.value = 3;
+    }
+
+    PatientModel? patient = patients.firstWhereOrNull((p) => p.id == patientId);
+    if (patient == null) {
+      try {
+        final list = await _patientsApi.getPatients();
+        patients.value = list;
+        patient = list.firstWhereOrNull((p) => p.id == patientId);
+      } catch (_) {}
+    }
+
+    if (patient != null) {
+      await selectPatient(patient);
+      if (toothNumber != null) {
+        selectedToothNumber.value = toothNumber;
+      }
+    }
   }
 }
 

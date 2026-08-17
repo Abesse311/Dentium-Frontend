@@ -16,13 +16,20 @@ class AppHeader extends StatelessWidget {
     final todayStr = DateFormatter.formatFull(DateTime.now());
 
     return Container(
-      height: 70,
+      height: 72,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border(
+        border: const Border(
           bottom: BorderSide(color: AppColors.border, width: 1),
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -56,34 +63,34 @@ class AppHeader extends StatelessWidget {
           AppSpacing.hGap16,
 
           // --- Current Date Chip ---
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.sm,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: AppRadius.borderRadiusLg,
+              border: Border.all(color: AppColors.border, width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  color: AppColors.primary,
+                  size: 16,
                 ),
-                decoration: AppDecorations.panelBg,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.calendar_today_rounded,
-                      color: AppColors.primary,
-                      size: 16,
-                    ),
-                    AppSpacing.hGap8,
-                    Text(
-                      todayStr,
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                AppSpacing.hGap8,
+                Text(
+                  todayStr,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
 
           AppSpacing.hGap12,
@@ -100,10 +107,11 @@ class AppHeader extends StatelessWidget {
               child: InkWell(
                 borderRadius: AppRadius.borderRadiusLg,
                 onTap: () => connController.checkConnection(),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.sm,
+                    horizontal: 14,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color: isConnected ? AppColors.successLight : AppColors.dangerLight,
@@ -134,13 +142,23 @@ class AppHeader extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: isConnected ? AppColors.success : AppColors.danger,
                             shape: BoxShape.circle,
+                            boxShadow: isConnected
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.success.withValues(alpha: 0.5),
+                                      blurRadius: 4,
+                                      spreadRadius: 1,
+                                    ),
+                                  ]
+                                : null,
                           ),
                         ),
                       AppSpacing.hGap8,
                       Text(
                         isConnected ? 'Serveur actif' : 'Serveur déconnecté',
                         style: AppTypography.badgeSmall.copyWith(
-                          color: isConnected ? AppColors.success : AppColors.danger,
+                          color: isConnected ? AppColors.successDark : AppColors.dangerDark,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       if (!isConnected) ...[
@@ -162,9 +180,3 @@ class AppHeader extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-

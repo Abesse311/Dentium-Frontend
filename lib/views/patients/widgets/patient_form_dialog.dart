@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:flutter_application_1/controllers/patients_controller.dart';
 import 'package:flutter_application_1/core/utils/date_formatter.dart';
 import 'package:flutter_application_1/models/patient_model.dart';
 import 'package:flutter_application_1/core/theme.dart';
@@ -33,6 +35,8 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
 
   DateTime? _selectedBirthDate;
   String? _selectedGender;
+  bool _isSubmitting = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -60,6 +64,28 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
     super.dispose();
   }
 
+  String _cleanErrorMessage(dynamic error) {
+    String msg = error.toString();
+    if (msg.startsWith('Exception: ')) {
+      msg = msg.substring('Exception: '.length);
+    }
+    if (msg.contains('status code of 409') ||
+        msg.toLowerCase().contains('already exists') ||
+        msg.toLowerCase().contains('existe déjà')) {
+      return 'Un patient avec ces coordonnées ou ce numéro de téléphone existe déjà.';
+    }
+    if (msg.contains('status code of 422') ||
+        msg.toLowerCase().contains('unprocessable')) {
+      return 'Certaines informations saisies ne sont pas valides. Veuillez vérifier les champs.';
+    }
+    if (msg.contains('SocketException') ||
+        msg.contains('Failed host lookup') ||
+        msg.contains('connectTimeout')) {
+      return 'Impossible de contacter le serveur. Veuillez vérifier votre connexion.';
+    }
+    return msg;
+  }
+
   Future<void> _pickBirthDate() async {
     final now = DateTime.now();
     final initialDate = _selectedBirthDate ?? DateTime(now.year - 30);
@@ -77,8 +103,13 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
 
     final patient = PatientModel(
       id: widget.initialPatient?.id,
@@ -95,7 +126,32 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
       notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
     );
 
-    Navigator.of(context).pop(patient);
+    try {
+      final controller = Get.isRegistered<PatientsController>()
+          ? Get.find<PatientsController>()
+          : Get.put(PatientsController());
+
+      PatientModel? result;
+      if (widget.initialPatient != null && widget.initialPatient!.id != null) {
+        result = await controller.updatePatient(widget.initialPatient!.id!, patient);
+      } else {
+        result = await controller.createPatient(patient);
+      }
+
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        if (result != null) {
+          Navigator.of(context).pop(result);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _errorMessage = _cleanErrorMessage(e);
+        });
+      }
+    }
   }
 
   @override
@@ -121,6 +177,51 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
                     : 'Renseignez les coordonnées et antécédents médicaux',
                 icon: isEditing ? Icons.edit_rounded : Icons.person_add_rounded,
               ),
+
+              // --- In-Dialog Error Alert Banner ---
+              if (_errorMessage != null) ...[
+                AppSpacing.vGap12,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerLight,
+                    borderRadius: AppRadius.borderRadiusMd,
+                    border: Border.all(
+                      color: AppColors.danger.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.danger,
+                        size: 20,
+                      ),
+                      AppSpacing.hGap10,
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.dangerDark,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () => setState(() => _errorMessage = null),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              AppSpacing.vGap16,
 
               // --- Scrollable Form Content ---
               Flexible(
@@ -187,14 +288,29 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
                                 AppSpacing.vGap6,
                                 DropdownButtonFormField<String>(
                                   initialValue: _selectedGender,
+                                  isExpanded: true,
                                   decoration: const InputDecoration(
                                     contentPadding:
                                         EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                   ),
-                                  hint: Text('Sélectionner', style: AppTypography.bodyMedium),
+                                  hint: Text('Sélectionner',
+                                      style: AppTypography.bodyMedium,
+                                      overflow: TextOverflow.ellipsis),
                                   items: const [
-                                    DropdownMenuItem(value: 'male', child: Text('Homme')),
-                                    DropdownMenuItem(value: 'female', child: Text('Femme')),
+                                    DropdownMenuItem(
+                                      value: 'male',
+                                      child: Text(
+                                        'Homme',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'female',
+                                      child: Text(
+                                        'Femme',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ],
                                   onChanged: (val) => setState(() => _selectedGender = val),
                                 ),
@@ -348,15 +464,26 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
                     child: Text('Annuler', style: AppTypography.button),
                   ),
                   AppSpacing.hGap12,
                   ElevatedButton.icon(
-                    onPressed: _submit,
-                    icon: const Icon(Icons.save_rounded, size: 18),
+                    onPressed: _isSubmitting ? null : _submit,
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.save_rounded, size: 18),
                     label: Text(
-                      isEditing ? 'Enregistrer les modifications' : 'Créer le dossier',
+                      _isSubmitting
+                          ? 'Enregistrement...'
+                          : (isEditing ? 'Enregistrer les modifications' : 'Créer le dossier'),
                       style: AppTypography.button,
                     ),
                   ),

@@ -6,6 +6,7 @@ import '../models/patient_invoice_model.dart';
 import '../models/patient_model.dart';
 import '../models/patient_treatment_model.dart';
 import 'dashboard_controller.dart';
+import 'treatments_controller.dart';
 
 class PatientsController extends GetxController {
   static PatientsController get to => Get.find();
@@ -41,20 +42,20 @@ class PatientsController extends GetxController {
       patients.value = list;
       _applySearch();
 
-      // If a patient was previously selected, refresh selection
+      // If a patient was previously selected, refresh selection and history
       if (selectedPatient.value != null) {
         final found = list.firstWhereOrNull(
           (p) => p.id == selectedPatient.value?.id,
         );
         if (found != null) {
-          selectPatient(found, refreshHistory: false);
+          selectPatient(found, refreshHistory: true);
         } else if (list.isNotEmpty) {
-          selectPatient(list.first);
+          selectPatient(list.first, refreshHistory: true);
         } else {
           selectedPatient.value = null;
         }
       } else if (list.isNotEmpty && selectedPatient.value == null) {
-        selectPatient(list.first);
+        selectPatient(list.first, refreshHistory: true);
       }
     } catch (e) {
       errorMessage.value = e.toString();
@@ -111,14 +112,20 @@ class PatientsController extends GetxController {
     }
   }
 
-  /// Create new patient
-  Future<bool> createPatient(PatientModel patient) async {
+  /// Create new patient - returns the created PatientModel on success
+  Future<PatientModel?> createPatient(PatientModel patient) async {
     isLoading.value = true;
+    errorMessage.value = '';
     try {
       final created = await _api.createPatient(patient);
       patients.insert(0, created);
       _applySearch();
       selectPatient(created);
+
+      if (Get.isRegistered<TreatmentsController>()) {
+        Get.find<TreatmentsController>().patients.insert(0, created);
+      }
+
       if (Get.isRegistered<DashboardController>()) {
         Get.find<DashboardController>().fetchDashboardData();
       }
@@ -130,25 +137,19 @@ class PatientsController extends GetxController {
         icon: const Icon(Icons.check_circle_rounded, color: AppColors.success),
         snackPosition: SnackPosition.BOTTOM,
       );
-      return true;
+      return created;
     } catch (e) {
-      Get.snackbar(
-        'Erreur',
-        e.toString(),
-        backgroundColor: AppColors.dangerLight,
-        colorText: AppColors.danger,
-        icon: const Icon(Icons.error_outline_rounded, color: AppColors.danger),
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return false;
+      errorMessage.value = e.toString();
+      rethrow;
     } finally {
       isLoading.value = false;
     }
   }
 
-  /// Update existing patient
-  Future<bool> updatePatient(int id, PatientModel patient) async {
+  /// Update existing patient - returns the updated PatientModel on success
+  Future<PatientModel?> updatePatient(int id, PatientModel patient) async {
     isLoading.value = true;
+    errorMessage.value = '';
     try {
       final updated = await _api.updatePatient(id, patient);
       final index = patients.indexWhere((p) => p.id == id);
@@ -159,6 +160,16 @@ class PatientsController extends GetxController {
       if (selectedPatient.value?.id == id) {
         selectedPatient.value = updated;
       }
+
+      if (Get.isRegistered<TreatmentsController>()) {
+        final tCtrl = Get.find<TreatmentsController>();
+        final idx = tCtrl.patients.indexWhere((p) => p.id == id);
+        if (idx != -1) tCtrl.patients[idx] = updated;
+        if (tCtrl.selectedPatient.value?.id == id) {
+          tCtrl.selectedPatient.value = updated;
+        }
+      }
+
       if (Get.isRegistered<DashboardController>()) {
         Get.find<DashboardController>().fetchDashboardData();
       }
@@ -170,17 +181,10 @@ class PatientsController extends GetxController {
         icon: const Icon(Icons.check_circle_rounded, color: AppColors.success),
         snackPosition: SnackPosition.BOTTOM,
       );
-      return true;
+      return updated;
     } catch (e) {
-      Get.snackbar(
-        'Erreur',
-        e.toString(),
-        backgroundColor: AppColors.dangerLight,
-        colorText: AppColors.danger,
-        icon: const Icon(Icons.error_outline_rounded, color: AppColors.danger),
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return false;
+      errorMessage.value = e.toString();
+      rethrow;
     } finally {
       isLoading.value = false;
     }
@@ -198,6 +202,15 @@ class PatientsController extends GetxController {
             ? filteredPatients.first
             : null;
       }
+
+      if (Get.isRegistered<TreatmentsController>()) {
+        final tCtrl = Get.find<TreatmentsController>();
+        tCtrl.patients.removeWhere((p) => p.id == id);
+        if (tCtrl.selectedPatient.value?.id == id) {
+          tCtrl.selectPatient(tCtrl.patients.isNotEmpty ? tCtrl.patients.first : null);
+        }
+      }
+
       if (Get.isRegistered<DashboardController>()) {
         Get.find<DashboardController>().fetchDashboardData();
       }

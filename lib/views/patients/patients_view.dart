@@ -12,11 +12,7 @@ class PatientsView extends StatelessWidget {
   const PatientsView({super.key});
 
   Future<void> _openAddPatientDialog(BuildContext context) async {
-    final controller = Get.find<PatientsController>();
-    final newPatient = await PatientFormDialog.show(context);
-    if (newPatient != null) {
-      await controller.createPatient(newPatient);
-    }
+    await PatientFormDialog.show(context);
   }
 
   @override

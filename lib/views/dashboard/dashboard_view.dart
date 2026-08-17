@@ -10,6 +10,7 @@ import '../../widgets/status_badge.dart';
 import 'package:flutter_application_1/views/appointments/widgets/book_appointment_dialog.dart';
 import 'package:flutter_application_1/views/invoices/widgets/create_invoice_dialog.dart';
 import 'package:flutter_application_1/views/patients/widgets/patient_form_dialog.dart';
+import 'package:flutter_application_1/views/treatments/widgets/pending_treatments_dialog.dart';
 import 'widgets/metric_card.dart';
 
 class DashboardView extends StatelessWidget {
@@ -101,6 +102,21 @@ class DashboardView extends StatelessWidget {
                         icon: const Icon(Icons.receipt_long_rounded, size: 18),
                         label: Text('Facturer', style: AppTypography.button),
                       ),
+                      OutlinedButton.icon(
+                        onPressed: () => PendingTreatmentsDialog.show(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: AppSpacing.buttonPadding,
+                          foregroundColor: AppColors.warningDark,
+                          side: const BorderSide(color: AppColors.warning),
+                        ),
+                        icon: const Icon(Icons.pending_actions_rounded,
+                            size: 18, color: AppColors.warning),
+                        label: Text(
+                          'Soins en attente',
+                          style: AppTypography.button
+                              .copyWith(color: AppColors.warningDark),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -176,6 +192,8 @@ class DashboardView extends StatelessWidget {
                                   subtitle: 'Actes dentaires',
                                   icon: Icons.pending_actions_rounded,
                                   accentColor: AppColors.warning,
+                                  onTap: () =>
+                                      PendingTreatmentsDialog.show(context),
                                 ),
                               ),
                             ],
@@ -242,6 +260,8 @@ class DashboardView extends StatelessWidget {
                             subtitle: 'Actes dentaires à programmer',
                             icon: Icons.pending_actions_rounded,
                             accentColor: AppColors.warning,
+                            onTap: () =>
+                                PendingTreatmentsDialog.show(context),
                           ),
                         ),
                       ],

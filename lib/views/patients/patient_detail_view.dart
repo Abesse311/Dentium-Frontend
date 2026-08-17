@@ -35,11 +35,7 @@ class _PatientDetailViewState extends State<PatientDetailView>
   }
 
   Future<void> _editPatient(BuildContext context) async {
-    final controller = Get.find<PatientsController>();
-    final updated = await PatientFormDialog.show(context, patient: widget.patient);
-    if (updated != null && widget.patient.id != null) {
-      await controller.updatePatient(widget.patient.id!, updated);
-    }
+    await PatientFormDialog.show(context, patient: widget.patient);
   }
 
   Future<void> _deletePatient(BuildContext context) async {

@@ -10,15 +10,31 @@ import 'package:flutter_application_1/widgets/app_date_picker.dart';
 import 'package:flutter_application_1/views/patients/widgets/patient_form_dialog.dart';
 
 class BookAppointmentDialog extends StatefulWidget {
-  final DateTime initialDate;
+  final DateTime? initialDate;
+  final int? initialPatientId;
+  final String? initialReason;
 
-  const BookAppointmentDialog({super.key, required this.initialDate});
+  const BookAppointmentDialog({
+    super.key,
+    this.initialDate,
+    this.initialPatientId,
+    this.initialReason,
+  });
 
-  static Future<bool?> show(BuildContext context, {required DateTime initialDate}) {
+  static Future<bool?> show(
+    BuildContext context, {
+    DateTime? initialDate,
+    int? initialPatientId,
+    String? initialReason,
+  }) {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => BookAppointmentDialog(initialDate: initialDate),
+      builder: (context) => BookAppointmentDialog(
+        initialDate: initialDate,
+        initialPatientId: initialPatientId,
+        initialReason: initialReason,
+      ),
     );
   }
 
@@ -42,7 +58,10 @@ class _BookAppointmentDialogState extends State<BookAppointmentDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = widget.initialDate;
+    _selectedDate = widget.initialDate ?? DateTime.now();
+    if (widget.initialReason != null) {
+      _reasonController.text = widget.initialReason!;
+    }
     _loadPatients();
   }
 
@@ -59,6 +78,11 @@ class _BookAppointmentDialogState extends State<BookAppointmentDialog> {
       if (mounted) {
         setState(() {
           _allPatients = list;
+          if (widget.initialPatientId != null) {
+            _selectedPatient = list.firstWhereOrNull(
+              (p) => p.id == widget.initialPatientId,
+            );
+          }
           _isLoadingPatients = false;
         });
       }

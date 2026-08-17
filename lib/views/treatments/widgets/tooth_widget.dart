@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/constants.dart';
 import 'package:flutter_application_1/core/theme.dart';
 
@@ -29,9 +29,9 @@ class _ToothWidgetState extends State<ToothWidget> {
   Widget build(BuildContext context) {
     final status = widget.status.toLowerCase();
 
-    Color fillColor = Colors.white;
+    Color fillColor = AppColors.surface;
     Color borderColor = AppColors.border;
-    Color accentColor = AppColors.textSecondary;
+    Color accentColor = AppColors.textMuted;
 
     if (status != 'healthy' && status.isNotEmpty) {
       fillColor = StatusLabels.treatmentStatusBgColor(status);
@@ -50,27 +50,42 @@ class _ToothWidgetState extends State<ToothWidget> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 48,
-          height: 82,
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          transform: _isHovered
+              ? Matrix4.translationValues(0, -2, 0)
+              : Matrix4.identity(),
+          width: 50,
+          height: 86,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xs,
             vertical: AppSpacing.sm,
           ),
           decoration: BoxDecoration(
             color: widget.isSelected ? AppColors.primaryLight : fillColor,
-            borderRadius: AppRadius.borderRadiusLg,
+            borderRadius: AppRadius.borderRadiusXl,
             border: Border.all(
               color: widget.isSelected ? AppColors.primary : borderColor,
-              width: widget.isSelected ? 2.5 : _isHovered ? 1.8 : 1.2,
+              width: widget.isSelected ? 2.5 : (_isHovered ? 1.8 : 1.2),
             ),
             boxShadow: [
-              if (widget.isSelected || _isHovered)
+              if (widget.isSelected)
                 BoxShadow(
-                  color: (widget.isSelected ? AppColors.primary : borderColor)
-                      .withValues(alpha: 0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                )
+              else if (_isHovered)
+                const BoxShadow(
+                  color: Color(0x100F172A),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                )
+              else
+                const BoxShadow(
+                  color: Color(0x04000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
                 ),
             ],
           ),
@@ -96,8 +111,8 @@ class _ToothWidgetState extends State<ToothWidget> {
   Widget _buildToothNumberTag(Color accentColor) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.xxs,
+        horizontal: 5,
+        vertical: 2,
       ),
       decoration: BoxDecoration(
         color: widget.isSelected ? AppColors.primary : AppColors.background,
@@ -107,6 +122,7 @@ class _ToothWidgetState extends State<ToothWidget> {
         '${widget.toothNumber}',
         style: AppTypography.badgeSmall.copyWith(
           color: widget.isSelected ? Colors.white : AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -144,13 +160,13 @@ class _ToothPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = accentColor.withValues(alpha: isSelected ? 0.9 : 0.7)
+      ..color = accentColor.withValues(alpha: isSelected ? 0.95 : 0.75)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6
       ..strokeCap = StrokeCap.round;
 
     final fillPaint = Paint()
-      ..color = accentColor.withValues(alpha: 0.15)
+      ..color = accentColor.withValues(alpha: isSelected ? 0.25 : 0.12)
       ..style = PaintingStyle.fill;
 
     final w = size.width;
@@ -227,9 +243,3 @@ class _ToothPainter extends CustomPainter {
         oldDelegate.isSelected != isSelected;
   }
 }
-
-
-
-
-
-
