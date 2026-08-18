@@ -1,4 +1,4 @@
-﻿import 'package:flutter_application_1/core/api_client.dart';
+import 'package:flutter_application_1/core/api_client.dart';
 import 'package:flutter_application_1/core/constants.dart';
 import '../models/invoice_model.dart';
 import '../models/payment_model.dart';
@@ -6,14 +6,37 @@ import '../models/payment_model.dart';
 class InvoicesApi {
   final ApiClient _client = ApiClient.instance;
 
-  /// Fetch all invoices
-  Future<List<InvoiceModel>> getInvoices({int? patientId}) async {
+  /// Fetch all invoices with optional filters (patientId, status, date, date_from, date_to)
+  Future<List<InvoiceModel>> getInvoices({
+    int? patientId,
+    String? status,
+    String? date,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
     try {
       final endpoint = patientId != null
           ? '${AppConstants.endpointPatients}/$patientId/invoices'
           : AppConstants.endpointInvoices;
 
-      final response = await _client.dio.get(endpoint);
+      final Map<String, dynamic> queryParams = {};
+      if (status != null && status != 'all' && status.isNotEmpty) {
+        queryParams['status'] = status;
+      }
+      if (date != null && date.isNotEmpty) {
+        queryParams['date'] = date;
+      }
+      if (dateFrom != null && dateFrom.isNotEmpty) {
+        queryParams['date_from'] = dateFrom;
+      }
+      if (dateTo != null && dateTo.isNotEmpty) {
+        queryParams['date_to'] = dateTo;
+      }
+
+      final response = await _client.dio.get(
+        endpoint,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
       final List data = response.data as List;
       return data
           .map((json) => InvoiceModel.fromJson(json as Map<String, dynamic>))

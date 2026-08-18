@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_application_1/core/theme.dart';
+import '../core/utils/date_formatter.dart';
 import '../data/invoices_api.dart';
 import '../models/invoice_model.dart';
 import '../models/payment_model.dart';
@@ -17,6 +18,11 @@ class InvoicesController extends GetxController {
   final Rxn<InvoiceModel> selectedInvoice = Rxn<InvoiceModel>();
 
   final RxString statusFilter = 'all'.obs; // 'all' | 'unpaid' | 'partially_paid' | 'paid'
+  final RxString datePreset = 'all'.obs; // 'all' | 'today' | 'week' | 'month' | 'custom_single' | 'custom_range'
+  final Rxn<DateTime> filterDate = Rxn<DateTime>(); // Exact single date
+  final Rxn<DateTime> filterDateFrom = Rxn<DateTime>(); // Range start date
+  final Rxn<DateTime> filterDateTo = Rxn<DateTime>(); // Range end date
+
   final RxString searchQuery = ''.obs;
   final RxBool isLoading = false.obs;
   final RxBool isDetailLoading = false.obs;
@@ -28,11 +34,32 @@ class InvoicesController extends GetxController {
     fetchInvoices();
   }
 
-  Future<void> fetchInvoices() async {
+  Future<void> fetchInvoices({int? patientId}) async {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final list = await _api.getInvoices();
+      String? dateParam;
+      String? dateFromParam;
+      String? dateToParam;
+
+      if (filterDate.value != null) {
+        dateParam = DateFormatter.toApiString(filterDate.value!);
+      } else {
+        if (filterDateFrom.value != null) {
+          dateFromParam = DateFormatter.toApiString(filterDateFrom.value!);
+        }
+        if (filterDateTo.value != null) {
+          dateToParam = DateFormatter.toApiString(filterDateTo.value!);
+        }
+      }
+
+      final list = await _api.getInvoices(
+        patientId: patientId,
+        status: statusFilter.value != 'all' ? statusFilter.value : null,
+        date: dateParam,
+        dateFrom: dateFromParam,
+        dateTo: dateToParam,
+      );
       invoices.value = list;
       _applyFilters();
 
@@ -49,6 +76,8 @@ class InvoicesController extends GetxController {
         }
       } else if (list.isNotEmpty && selectedInvoice.value == null) {
         selectInvoice(list.first);
+      } else if (list.isEmpty) {
+        selectedInvoice.value = null;
       }
     } catch (e) {
       errorMessage.value = e.toString();
@@ -85,7 +114,102 @@ class InvoicesController extends GetxController {
 
   void setFilter(String filter) {
     statusFilter.value = filter;
-    _applyFilters();
+    fetchInvoices();
+  }
+
+  void setDatePreset(String preset) {
+    final now = DateTime.now();
+    datePreset.value = preset;
+
+    if (preset == 'all') {
+      filterDate.value = null;
+      filterDateFrom.value = null;
+      filterDateTo.value = null;
+    } else if (preset == 'today') {
+      filterDate.value = DateTime(now.year, now.month, now.day);
+      filterDateFrom.value = null;
+      filterDateTo.value = null;
+    } else if (preset == 'week') {
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      final sunday = monday.add(const Duration(days: 6));
+      filterDate.value = null;
+      filterDateFrom.value = DateTime(monday.year, monday.month, monday.day);
+      filterDateTo.value = DateTime(sunday.year, sunday.month, sunday.day);
+    } else if (preset == 'month') {
+      final firstDay = DateTime(now.year, now.month, 1);
+      final nextMonth = DateTime(now.year, now.month + 1, 1);
+      final lastDay = nextMonth.subtract(const Duration(days: 1));
+      filterDate.value = null;
+      filterDateFrom.value = firstDay;
+      filterDateTo.value = DateTime(lastDay.year, lastDay.month, lastDay.day);
+    }
+    fetchInvoices();
+  }
+
+  void setSingleDate(DateTime date) {
+    datePreset.value = 'custom_single';
+    filterDate.value = DateTime(date.year, date.month, date.day);
+    filterDateFrom.value = null;
+    filterDateTo.value = null;
+    fetchInvoices();
+  }
+
+  void setDateRange(DateTime from, DateTime to) {
+    datePreset.value = 'custom_range';
+    filterDate.value = null;
+    filterDateFrom.value = DateTime(from.year, from.month, from.day);
+    filterDateTo.value = DateTime(to.year, to.month, to.day);
+    fetchInvoices();
+  }
+
+  void clearDateFilter() {
+    datePreset.value = 'all';
+    filterDate.value = null;
+    filterDateFrom.value = null;
+    filterDateTo.value = null;
+    fetchInvoices();
+  }
+
+  void resetAllFilters() {
+    statusFilter.value = 'all';
+    datePreset.value = 'all';
+    filterDate.value = null;
+    filterDateFrom.value = null;
+    filterDateTo.value = null;
+    searchQuery.value = '';
+    fetchInvoices();
+  }
+
+  bool get hasActiveDateFilter {
+    return datePreset.value != 'all' ||
+        filterDate.value != null ||
+        filterDateFrom.value != null ||
+        filterDateTo.value != null;
+  }
+
+  bool get hasActiveFilters {
+    return statusFilter.value != 'all' ||
+        hasActiveDateFilter ||
+        searchQuery.value.isNotEmpty;
+  }
+
+  String get dateFilterSummary {
+    if (datePreset.value == 'today') return "Aujourd'hui";
+    if (datePreset.value == 'week') return 'Cette semaine';
+    if (datePreset.value == 'month') return 'Ce mois-ci';
+    if (filterDate.value != null) {
+      return DateFormatter.formatShort(filterDate.value!);
+    }
+    if (filterDateFrom.value != null && filterDateTo.value != null) {
+      return '${DateFormatter.formatShort(filterDateFrom.value!)} — ${DateFormatter.formatShort(filterDateTo.value!)}';
+    }
+    if (filterDateFrom.value != null) {
+      return 'À partir du ${DateFormatter.formatShort(filterDateFrom.value!)}';
+    }
+    if (filterDateTo.value != null) {
+      return "Jusqu'au ${DateFormatter.formatShort(filterDateTo.value!)}";
+    }
+    return 'Toutes les dates';
   }
 
   void search(String query) {

@@ -136,3 +136,138 @@ Future<DateTime?> showAppDatePicker({
 
   return result;
 }
+
+/// Shows a CalendarDatePicker2 range dialog matching the project theme.
+/// Returns a `List<DateTime>` with [start, end], or null if cancelled.
+Future<List<DateTime>?> showAppDateRangePicker({
+  required BuildContext context,
+  List<DateTime>? initialDates,
+  DateTime? firstDate,
+  DateTime? lastDate,
+  String? helpText,
+}) async {
+  final now = DateTime.now();
+  final first = firstDate ?? DateTime(2020);
+  final last = lastDate ?? now.add(const Duration(days: 3650));
+
+  List<DateTime> result = initialDates ?? [now];
+
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) {
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusXxl),
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: AppDecorations.iconBadge(
+                      AppColors.primary,
+                      radius: AppRadius.md,
+                    ),
+                    child: const Icon(
+                      Icons.date_range_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  AppSpacing.hGap12,
+                  Expanded(
+                    child: Text(
+                      helpText ?? 'Sélectionner une période',
+                      style: AppTypography.h4,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    color: AppColors.textMuted,
+                    onPressed: () {
+                      result = [];
+                      Navigator.of(ctx).pop();
+                    },
+                  ),
+                ],
+              ),
+
+              AppSpacing.vGap16,
+
+              // Calendar picker
+              CalendarDatePicker2(
+                config: CalendarDatePicker2Config(
+                  calendarType: CalendarDatePicker2Type.range,
+                  firstDate: first,
+                  lastDate: last,
+                  selectedDayHighlightColor: AppColors.primary,
+                  selectedRangeHighlightColor: AppColors.primaryLight,
+                  weekdayLabels: const [
+                    'Dim',
+                    'Lun',
+                    'Mar',
+                    'Mer',
+                    'Jeu',
+                    'Ven',
+                    'Sam',
+                  ],
+                  weekdayLabelTextStyle: AppTypography.kpiLabel.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  controlsTextStyle: AppTypography.h4,
+                  dayTextStyle: AppTypography.bodyMedium,
+                  selectedDayTextStyle: AppTypography.bodyMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  todayTextStyle: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  disabledDayTextStyle: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                value: initialDates ?? [now],
+                onValueChanged: (dates) {
+                  result = dates;
+                },
+              ),
+
+              AppSpacing.vGap8,
+              const Divider(),
+              AppSpacing.vGap8,
+
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    onPressed: () {
+                      result = [];
+                      Navigator.of(ctx).pop();
+                    },
+                    child: Text('Annuler', style: AppTypography.button),
+                  ),
+                  AppSpacing.hGap12,
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text('Confirmer', style: AppTypography.button),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  if (result.isEmpty) return null;
+  return result;
+}

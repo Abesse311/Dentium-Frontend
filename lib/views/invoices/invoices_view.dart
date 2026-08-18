@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../controllers/invoices_controller.dart';
 import '../../models/invoice_model.dart';
 import 'package:flutter_application_1/core/theme.dart';
+import '../../widgets/app_date_picker.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/search_input.dart';
 import '../../widgets/status_badge.dart';
@@ -16,6 +17,39 @@ class InvoicesView extends StatelessWidget {
     await CreateInvoiceDialog.show(context);
   }
 
+  Future<void> _pickSingleDate(BuildContext context, InvoicesController controller) async {
+    final now = DateTime.now();
+    final initial = controller.filterDate.value ?? now;
+    final picked = await showAppDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      helpText: 'Filtrer par date précise',
+    );
+    if (picked != null) {
+      controller.setSingleDate(picked);
+    }
+  }
+
+  Future<void> _pickDateRange(BuildContext context, InvoicesController controller) async {
+    final now = DateTime.now();
+    final initialStart = controller.filterDateFrom.value ?? now.subtract(const Duration(days: 7));
+    final initialEnd = controller.filterDateTo.value ?? now;
+    final picked = await showAppDateRangePicker(
+      context: context,
+      initialDates: [initialStart, initialEnd],
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      helpText: 'Filtrer par période',
+    );
+    if (picked != null && picked.isNotEmpty) {
+      final start = picked.first;
+      final end = picked.length > 1 ? picked.last : picked.first;
+      controller.setDateRange(start, end);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<InvoicesController>();
@@ -27,7 +61,7 @@ class InvoicesView extends StatelessWidget {
           final isNarrow = constraints.maxWidth < 850;
 
           final listPanel = Container(
-            width: isNarrow ? null : 400,
+            width: isNarrow ? null : 420,
             decoration: const BoxDecoration(
               color: AppColors.surface,
               border: Border(
@@ -42,12 +76,15 @@ class InvoicesView extends StatelessWidget {
                     AppSpacing.xxl,
                     AppSpacing.xxl,
                     AppSpacing.xxl,
-                    AppSpacing.xl,
+                    AppSpacing.md,
                   ),
                   child: Row(
                     children: [
                       Obx(() {
+                        final count = controller.filteredInvoices.length;
                         final total = controller.invoices.length;
+                        final isFiltered = controller.hasActiveFilters;
+
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -56,7 +93,9 @@ class InvoicesView extends StatelessWidget {
                               style: AppTypography.h4,
                             ),
                             Text(
-                              '$total facture${total > 1 ? 's' : ''} émise${total > 1 ? 's' : ''}',
+                              isFiltered
+                                  ? '$count / $total facture${total > 1 ? 's' : ''}'
+                                  : '$total facture${total > 1 ? 's' : ''} émise${total > 1 ? 's' : ''}',
                               style: AppTypography.caption,
                             ),
                           ],
@@ -88,36 +127,223 @@ class InvoicesView extends StatelessWidget {
                   ),
                 ),
 
-                AppSpacing.vGap12,
+                AppSpacing.vGap10,
 
-                // 3. Status Filters Bar
+                // 3. Quick Date Presets Row (Toutes, Aujourd'hui, Semaine, Mois)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
                   child: Obx(() {
-                    final current = controller.statusFilter.value;
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                    final current = controller.datePreset.value;
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _buildPresetChip('Toutes', 'all', current, () {
+                            controller.setDatePreset('all');
+                          }),
+                        ),
+                        AppSpacing.hGap6,
+                        Expanded(
+                          child: _buildPresetChip('Aujourd\'hui', 'today', current, () {
+                            controller.setDatePreset('today');
+                          }),
+                        ),
+                        AppSpacing.hGap6,
+                        Expanded(
+                          child: _buildPresetChip('Semaine', 'week', current, () {
+                            controller.setDatePreset('week');
+                          }),
+                        ),
+                        AppSpacing.hGap6,
+                        Expanded(
+                          child: _buildPresetChip('Mois', 'month', current, () {
+                            controller.setDatePreset('month');
+                          }),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+
+                AppSpacing.vGap8,
+
+                // 4. Custom Date & Period Selector Button Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                  child: Obx(() {
+                    final hasCustomDate = controller.hasActiveDateFilter;
+                    final isCustomSingle = controller.datePreset.value == 'custom_single';
+                    final isCustomRange = controller.datePreset.value == 'custom_range';
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: hasCustomDate
+                            ? AppColors.primaryLight.withValues(alpha: 0.5)
+                            : AppColors.background,
+                        borderRadius: AppRadius.borderRadiusMd,
+                        border: Border.all(
+                          color: hasCustomDate
+                              ? AppColors.primary.withValues(alpha: 0.5)
+                              : AppColors.border,
+                        ),
+                      ),
                       child: Row(
                         children: [
-                          _buildFilterChip('Toutes', 'all', current, controller),
-                          AppSpacing.hGap6,
-                          _buildFilterChip(
-                              'Non payées', 'unpaid', current, controller),
-                          AppSpacing.hGap6,
-                          _buildFilterChip(
-                              'Partielles', 'partially_paid', current, controller),
-                          AppSpacing.hGap6,
-                          _buildFilterChip('Payées', 'paid', current, controller),
+                          // Left: Custom Picker Launcher
+                          Expanded(
+                            child: PopupMenuButton<String>(
+                              tooltip: 'Choisir une date ou période',
+                              position: PopupMenuPosition.under,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: AppRadius.borderRadiusLg,
+                              ),
+                              onSelected: (choice) {
+                                if (choice == 'single') {
+                                  _pickSingleDate(context, controller);
+                                } else if (choice == 'range') {
+                                  _pickDateRange(context, controller);
+                                }
+                              },
+                              itemBuilder: (ctx) => [
+                                PopupMenuItem(
+                                  value: 'single',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today_rounded,
+                                          size: 18, color: AppColors.primary),
+                                      AppSpacing.hGap10,
+                                      Text('Date précise (un jour)',
+                                          style: AppTypography.bodyMedium),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'range',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.date_range_rounded,
+                                          size: 18, color: AppColors.info),
+                                      AppSpacing.hGap10,
+                                      Text('Période (Du ... au ...)',
+                                          style: AppTypography.bodyMedium),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.sm,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isCustomRange
+                                          ? Icons.date_range_rounded
+                                          : Icons.calendar_month_rounded,
+                                      size: 16,
+                                      color: hasCustomDate
+                                          ? AppColors.primary
+                                          : AppColors.textSecondary,
+                                    ),
+                                    AppSpacing.hGap8,
+                                    Expanded(
+                                      child: Text(
+                                        hasCustomDate
+                                            ? controller.dateFilterSummary
+                                            : 'Date précise ou Période...',
+                                        style: AppTypography.badgeSmall.copyWith(
+                                          fontWeight: hasCustomDate
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: hasCustomDate
+                                              ? AppColors.primaryDark
+                                              : AppColors.textSecondary,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_drop_down_rounded,
+                                      size: 18,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Quick Calendar Shortcut Icons
+                          IconButton(
+                            icon: const Icon(Icons.calendar_today_rounded, size: 16),
+                            tooltip: 'Date précise',
+                            color: isCustomSingle ? AppColors.primary : AppColors.textSecondary,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            onPressed: () => _pickSingleDate(context, controller),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.date_range_rounded, size: 16),
+                            tooltip: 'Période',
+                            color: isCustomRange ? AppColors.primary : AppColors.textSecondary,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            onPressed: () => _pickDateRange(context, controller),
+                          ),
+
+                          // Clear button if date is filtered
+                          if (hasCustomDate)
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              tooltip: 'Effacer le filtre date',
+                              color: AppColors.danger,
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                              onPressed: () => controller.clearDateFilter(),
+                            ),
                         ],
                       ),
                     );
                   }),
                 ),
 
-                AppSpacing.vGap12,
+                AppSpacing.vGap10,
+
+                // 5. Status Filters Bar (Tous statuts, Non payées, Partielles, Payées)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                  child: Obx(() {
+                    final current = controller.statusFilter.value;
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _buildFilterChip('Tous', 'all', current, controller),
+                        ),
+                        AppSpacing.hGap6,
+                        Expanded(
+                          child: _buildFilterChip('Non payées', 'unpaid', current, controller),
+                        ),
+                        AppSpacing.hGap6,
+                        Expanded(
+                          child: _buildFilterChip('Partielles', 'partially_paid', current, controller),
+                        ),
+                        AppSpacing.hGap6,
+                        Expanded(
+                          child: _buildFilterChip('Payées', 'paid', current, controller),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+
+                AppSpacing.vGap8,
                 const Divider(height: 1),
 
-                // 4. Invoices List
+                // 6. Invoices List
                 Expanded(
                   child: Obx(() {
                     final selectedId = controller.selectedInvoice.value?.id;
@@ -147,9 +373,17 @@ class InvoicesView extends StatelessWidget {
                       return EmptyState(
                         icon: Icons.receipt_outlined,
                         title: 'Aucune facture trouvée',
-                        message: controller.searchQuery.isEmpty
-                            ? 'Cliquez sur "Facturer" pour créer votre première facture.'
-                            : 'Aucun résultat pour "${controller.searchQuery.value}".',
+                        message: controller.hasActiveFilters
+                            ? 'Aucune facture ne correspond aux filtres sélectionnés.'
+                            : 'Cliquez sur "Facturer" pour créer votre première facture.',
+                        action: controller.hasActiveFilters
+                            ? OutlinedButton.icon(
+                                onPressed: () => controller.resetAllFilters(),
+                                icon: const Icon(Icons.clear_all_rounded, size: 16),
+                                label: Text('Réinitialiser les filtres',
+                                    style: AppTypography.buttonSmall),
+                              )
+                            : null,
                       );
                     }
 
@@ -209,19 +443,19 @@ class InvoicesView extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(
+  Widget _buildPresetChip(
     String label,
     String value,
     String current,
-    InvoicesController controller,
+    VoidCallback onTap,
   ) {
     final isSelected = current == value;
     return InkWell(
-      onTap: () => controller.setFilter(value),
+      onTap: onTap,
       borderRadius: AppRadius.borderRadiusMd,
       child: Container(
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
@@ -233,9 +467,49 @@ class InvoicesView extends StatelessWidget {
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppTypography.badgeSmall.copyWith(
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             color: isSelected ? Colors.white : AppColors.textSecondary,
+            fontSize: 11,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(
+    String label,
+    String value,
+    String current,
+    InvoicesController controller,
+  ) {
+    final isSelected = current == value;
+    return InkWell(
+      onTap: () => controller.setFilter(value),
+      borderRadius: AppRadius.borderRadiusMd,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryLight : AppColors.surface,
+          borderRadius: AppRadius.borderRadiusMd,
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.badgeSmall.copyWith(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
+            fontSize: 11,
           ),
         ),
       ),
@@ -286,7 +560,7 @@ class _InvoiceListItemState extends State<_InvoiceListItem> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
-            vertical: AppSpacing.xl,
+            vertical: AppSpacing.lg,
           ),
           decoration: BoxDecoration(
             color: bgColor,
@@ -296,6 +570,7 @@ class _InvoiceListItemState extends State<_InvoiceListItem> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Row 1: Invoice Number & Status Badge
               Row(
                 children: [
                   Text(
@@ -310,11 +585,17 @@ class _InvoiceListItemState extends State<_InvoiceListItem> {
                   StatusBadge.invoice(invoice.status),
                 ],
               ),
+
               AppSpacing.vGap6,
+
+              // Row 2: Patient Name & Total Amount
               Row(
                 children: [
-                  const Icon(Icons.person_outline_rounded,
-                      size: 13, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.person_outline_rounded,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   AppSpacing.hGap4,
                   Expanded(
                     child: Text(
@@ -326,25 +607,57 @@ class _InvoiceListItemState extends State<_InvoiceListItem> {
                   ),
                   Text(
                     invoice.formattedTotal,
-                    style: AppTypography.formLabel,
+                    style: AppTypography.formLabel.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
+
               AppSpacing.vGap4,
+
+              // Row 3: Invoice Date & Paid Amount / Remaining
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    invoice.formattedDate,
-                    style: AppTypography.caption,
-                  ),
-                  if (!invoice.isPaid)
-                    Text(
-                      'Reste : ${invoice.formattedRemaining}',
-                      style: AppTypography.badgeSmall.copyWith(
-                        color: AppColors.danger,
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 12,
+                        color: AppColors.textMuted,
                       ),
-                    ),
+                      AppSpacing.hGap4,
+                      Text(
+                        invoice.formattedDate,
+                        style: AppTypography.caption,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        'Payé : ${invoice.formattedPaid}',
+                        style: AppTypography.caption.copyWith(
+                          color: invoice.isPaid
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                          fontWeight:
+                              invoice.isPaid ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      if (!invoice.isPaid) ...[
+                        AppSpacing.hGap8,
+                        Text(
+                          'Reste : ${invoice.formattedRemaining}',
+                          style: AppTypography.badgeSmall.copyWith(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -354,9 +667,3 @@ class _InvoiceListItemState extends State<_InvoiceListItem> {
     );
   }
 }
-
-
-
-
-
-
