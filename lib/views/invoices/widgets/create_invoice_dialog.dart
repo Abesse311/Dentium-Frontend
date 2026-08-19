@@ -6,6 +6,7 @@ import 'package:flutter_application_1/data/patients_api.dart';
 import 'package:flutter_application_1/data/treatments_api.dart';
 import 'package:flutter_application_1/models/patient_model.dart';
 import 'package:flutter_application_1/models/patient_treatment_model.dart';
+import 'package:flutter_application_1/models/treatment_model.dart';
 import 'package:flutter_application_1/core/theme.dart';
 import 'package:flutter_application_1/core/utils/invoice_item_grouper.dart';
 import 'package:flutter_application_1/widgets/app_dialog_header.dart';
@@ -60,11 +61,16 @@ class _CreateInvoiceDialogState extends State<CreateInvoiceDialog> {
     try {
       final list = await _patientsApi.getPatients();
 
-      // Look up completed treatments across patients ready to be invoiced
+      // Look up completed treatments grouped by patient to show accurate grouped interventions count
       try {
         final completed = await _treatmentsApi.getTreatments(status: 'completed');
+        final Map<int, List<TreatmentModel>> perPatient = {};
         for (final t in completed) {
-          _patientUnbilledCount[t.patientId] = (_patientUnbilledCount[t.patientId] ?? 0) + 1;
+          perPatient.putIfAbsent(t.patientId, () => []).add(t);
+        }
+        for (final entry in perPatient.entries) {
+          final grouped = InvoiceItemGrouperTreatments.groupTreatments(entry.value);
+          _patientUnbilledCount[entry.key] = grouped.length;
         }
       } catch (_) {}
 
@@ -326,23 +332,28 @@ class _CreateInvoiceDialogState extends State<CreateInvoiceDialog> {
                               ),
                               if (_patientTreatments.isNotEmpty) ...[
                                 AppSpacing.hGap8,
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: AppRadius.borderRadiusSm,
-                                  ),
-                                  child: Text(
-                                    '${_patientTreatments.length} acte${_patientTreatments.length > 1 ? 's' : ''} chargé${_patientTreatments.length > 1 ? 's' : ''}',
-                                    style: AppTypography.badgeSmall.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                                Builder(builder: (context) {
+                                  final groupedCount = InvoiceItemGrouper
+                                      .groupPatientTreatments(_patientTreatments)
+                                      .length;
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
                                     ),
-                                  ),
-                                ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      borderRadius: AppRadius.borderRadiusSm,
+                                    ),
+                                    child: Text(
+                                      '$groupedCount soin${groupedCount > 1 ? 's' : ''} à facturer',
+                                      style: AppTypography.badgeSmall.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }),
                               ],
                             ],
                           ),
@@ -509,7 +520,7 @@ class _CreateInvoiceDialogState extends State<CreateInvoiceDialog> {
                                           ),
                                         ),
                                         child: Text(
-                                          '$unbilledCount acte${unbilledCount > 1 ? 's' : ''} réalisé${unbilledCount > 1 ? 's' : ''}',
+                                          '$unbilledCount soin${unbilledCount > 1 ? 's' : ''} à facturer',
                                           style: AppTypography.badgeSmall
                                               .copyWith(
                                             color: AppColors.warningDark,
