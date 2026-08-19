@@ -1,10 +1,35 @@
-﻿import 'package:flutter_application_1/core/api_client.dart';
+import 'package:flutter_application_1/core/api_client.dart';
 import 'package:flutter_application_1/core/constants.dart';
 import '../models/appointment_model.dart';
 import '../models/day_capacity_model.dart';
 
 class AppointmentsApi {
   final ApiClient _client = ApiClient.instance;
+
+  /// Fetch appointments with optional filters (patientId, date, status)
+  Future<List<AppointmentModel>> getAppointments({
+    int? patientId,
+    String? date,
+    String? status,
+  }) async {
+    try {
+      final Map<String, dynamic> query = {};
+      if (patientId != null) query['patient_id'] = patientId;
+      if (date != null && date.isNotEmpty) query['date'] = date;
+      if (status != null && status.isNotEmpty) query['status'] = status;
+
+      final response = await _client.dio.get(
+        AppConstants.endpointAppointments,
+        queryParameters: query.isNotEmpty ? query : null,
+      );
+      final List data = response.data as List;
+      return data
+          .map((json) => AppointmentModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ApiClient.handleError(e);
+    }
+  }
 
   /// Fetch all appointments for a specific date (YYYY-MM-DD)
   Future<List<AppointmentModel>> getAppointmentsForDate(String date) async {

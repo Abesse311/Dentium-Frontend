@@ -174,6 +174,44 @@ class AppointmentsController extends GetxController {
     }
   }
 
+  /// Get upcoming active appointment for a patient (today or future)
+  Future<AppointmentModel?> getUpcomingAppointmentForPatient(int patientId) async {
+    try {
+      final list = await _api.getAppointments(
+        patientId: patientId,
+        status: 'booked',
+      );
+      final todayStr = DateFormatter.toApiString(DateTime.now());
+      final upcoming = list.where((a) => a.appointmentDate.compareTo(todayStr) >= 0).toList();
+      if (upcoming.isEmpty) return null;
+      upcoming.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+      return upcoming.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Get map of upcoming appointments for all patients (patientId -> closest upcoming appointment)
+  Future<Map<int, AppointmentModel>> getUpcomingAppointmentsMap() async {
+    try {
+      final list = await _api.getAppointments(status: 'booked');
+      final todayStr = DateFormatter.toApiString(DateTime.now());
+      final Map<int, AppointmentModel> map = {};
+
+      final upcoming = list.where((a) => a.appointmentDate.compareTo(todayStr) >= 0).toList();
+      upcoming.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+
+      for (final app in upcoming) {
+        if (!map.containsKey(app.patientId)) {
+          map[app.patientId] = app;
+        }
+      }
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
+
   Future<void> _updateAppointmentStatus(
     int appointmentId,
     String newStatus,
@@ -234,6 +272,36 @@ class AppointmentsController extends GetxController {
         colorText: AppColors.danger,
         snackPosition: SnackPosition.BOTTOM,
       );
+    }
+  }
+
+  /// Reschedule an appointment
+  Future<bool> rescheduleAppointment(int appointmentId, DateTime newDate) async {
+    try {
+      final dateStr = DateFormatter.toApiString(newDate);
+      await _api.rescheduleAppointment(appointmentId, dateStr);
+      fetchWeekCapacity();
+      fetchDayAppointments();
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
+      Get.snackbar(
+        'Rendez-vous reprogrammé',
+        'Le rendez-vous a été déplacé au ${DateFormatter.formatMedium(newDate)}.',
+        backgroundColor: AppColors.successLight,
+        colorText: AppColors.success,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        e.toString(),
+        backgroundColor: AppColors.dangerLight,
+        colorText: AppColors.danger,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
     }
   }
 

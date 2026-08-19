@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../controllers/appointments_controller.dart';
 import '../../../controllers/treatments_controller.dart';
+import '../../../core/utils/date_formatter.dart';
+import '../../../models/appointment_model.dart';
+import '../../../models/patient_model.dart';
 import '../../../models/treatment_model.dart';
 import '../../../core/theme.dart';
 import '../../../widgets/empty_state.dart';
@@ -31,23 +35,61 @@ class PendingTreatmentsDialog extends StatefulWidget {
 
 class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
   String _searchQuery = '';
-  String _filterStatus = 'all'; // 'all' | 'planned' | 'in_progress'
+  String _filterStatus = 'all'; // 'all' | 'unbooked' | 'booked' | 'in_progress'
+  Map<int, AppointmentModel> _upcomingMap = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUpcomingAppointments();
+  }
+
+  Future<void> _loadUpcomingAppointments() async {
+    final appCtrl = Get.isRegistered<AppointmentsController>()
+        ? Get.find<AppointmentsController>()
+        : Get.put(AppointmentsController());
+    final map = await appCtrl.getUpcomingAppointmentsMap();
+    if (mounted) {
+      setState(() {
+        _upcomingMap = map;
+      });
+    }
+  }
 
   Future<void> _bookAppointmentForTreatment(
     BuildContext context,
     TreatmentModel treatment,
   ) async {
-    Navigator.of(context).pop(); // Close dialog
-
     final reason = treatment.isGeneral
         ? 'Soin : ${treatment.displayName}'
         : 'Soin Dent ${treatment.toothNumber} : ${treatment.displayName}';
 
-    await BookAppointmentDialog.show(
+    PatientModel? patient;
+    if (Get.isRegistered<TreatmentsController>()) {
+      final ctrl = Get.find<TreatmentsController>();
+      patient = ctrl.patients.firstWhereOrNull((p) => p.id == treatment.patientId);
+    }
+    if (patient == null && treatment.patientName != null && treatment.patientName!.isNotEmpty) {
+      patient = PatientModel(
+        id: treatment.patientId,
+        fullName: treatment.patientName!,
+        phone: treatment.patientPhone,
+      );
+    }
+
+    final booked = await BookAppointmentDialog.show(
       context,
       initialPatientId: treatment.patientId,
+      initialPatient: patient,
       initialReason: reason,
     );
+
+    if (booked == true) {
+      await _loadUpcomingAppointments();
+      if (Get.isRegistered<TreatmentsController>()) {
+        Get.find<TreatmentsController>().fetchPendingTreatments();
+      }
+    }
   }
 
   Future<void> _openOdontogram(
@@ -70,7 +112,7 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
       child: Container(
-        width: 900,
+        width: 950,
         height: 750,
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -171,11 +213,15 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
                   ),
                   AppSpacing.hGap16,
 
-                  // Filter Chips (Tous / Planifiés / En cours)
+                  // Filter Chips (Tous / À programmer / RDV prévu / En cours)
                   Obx(() {
                     final all = controller.pendingTreatments;
-                    final plannedCount =
-                        all.where((t) => t.status == 'planned').length;
+                    final unbookedCount = all
+                        .where((t) => !_upcomingMap.containsKey(t.patientId))
+                        .length;
+                    final bookedCount = all
+                        .where((t) => _upcomingMap.containsKey(t.patientId))
+                        .length;
                     final inProgressCount =
                         all.where((t) => t.status == 'in_progress').length;
 
@@ -187,7 +233,11 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
                         children: [
                           _buildFilterChip('all', 'Tous (${all.length})'),
                           AppSpacing.hGap4,
-                          _buildFilterChip('planned', 'Planifiés ($plannedCount)'),
+                          _buildFilterChip(
+                              'unbooked', 'À programmer ($unbookedCount)'),
+                          AppSpacing.hGap4,
+                          _buildFilterChip(
+                              'booked', 'RDV prévu ($bookedCount)'),
                           AppSpacing.hGap4,
                           _buildFilterChip(
                               'in_progress', 'En cours ($inProgressCount)'),
@@ -212,9 +262,13 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
 
                 final rawList = controller.pendingTreatments;
                 final filtered = rawList.where((t) {
-                  // Status filter
-                  if (_filterStatus != 'all' && t.status != _filterStatus) {
-                    return false;
+                  // Status / Booking filter
+                  if (_filterStatus == 'unbooked') {
+                    if (_upcomingMap.containsKey(t.patientId)) return false;
+                  } else if (_filterStatus == 'booked') {
+                    if (!_upcomingMap.containsKey(t.patientId)) return false;
+                  } else if (_filterStatus == 'in_progress') {
+                    if (t.status != 'in_progress') return false;
                   }
 
                   // Search filter
@@ -247,10 +301,10 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
                         : Icons.check_circle_outline_rounded,
                     title: _searchQuery.isNotEmpty
                         ? 'Aucun résultat trouvé'
-                        : 'Aucun soin en attente',
+                        : 'Aucun soin dans cette catégorie',
                     message: _searchQuery.isNotEmpty
                         ? 'Aucun acte ne correspond à "$_searchQuery".'
-                        : 'Tous les actes dentaires prescrits ont été complétés !',
+                        : 'Tous les actes dentaires prescrits ont été traités !',
                   );
                 }
 
@@ -338,6 +392,8 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
     final toothName = item.toothNumber != null
         ? ToothDetailPanel.getToothAnatomicalName(item.toothNumber!)
         : 'Soin Général';
+
+    final upcoming = _upcomingMap[item.patientId];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -454,21 +510,50 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Pre-fill Appointment Booking
-              ElevatedButton.icon(
-                onPressed: () => _bookAppointmentForTreatment(context, item),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+              // Pre-fill Appointment Booking / Reschedule
+              if (upcoming != null)
+                ElevatedButton.icon(
+                  onPressed: () => _bookAppointmentForTreatment(context, item),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    backgroundColor: AppColors.successLight,
+                    foregroundColor: AppColors.successDark,
+                    elevation: 0,
+                    side: BorderSide(
+                      color: AppColors.success.withValues(alpha: 0.4),
+                    ),
                   ),
-                  backgroundColor: AppColors.primaryLight,
-                  foregroundColor: AppColors.primary,
-                  elevation: 0,
+                  icon: const Icon(
+                    Icons.event_available_rounded,
+                    size: 16,
+                    color: AppColors.successDark,
+                  ),
+                  label: Text(
+                    'RDV : ${DateFormatter.formatMedium(DateFormatter.fromApiString(upcoming.appointmentDate) ?? DateTime.now())}',
+                    style: AppTypography.buttonSmall.copyWith(
+                      color: AppColors.successDark,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              else
+                ElevatedButton.icon(
+                  onPressed: () => _bookAppointmentForTreatment(context, item),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    backgroundColor: AppColors.primaryLight,
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                  ),
+                  icon: const Icon(Icons.calendar_today_rounded, size: 15),
+                  label: Text('Prendre RDV', style: AppTypography.buttonSmall),
                 ),
-                icon: const Icon(Icons.calendar_today_rounded, size: 15),
-                label: Text('Prendre RDV', style: AppTypography.buttonSmall),
-              ),
               AppSpacing.hGap8,
 
               // Jump to Odontogram
@@ -533,7 +618,7 @@ class _PendingTreatmentsDialogState extends State<PendingTreatmentsDialog> {
                         const Icon(Icons.delete_outline_rounded,
                             size: 18, color: AppColors.danger),
                         const SizedBox(width: 8),
-                        Text('Supprimer',
+                        Text('Supprimer l\'acte',
                             style: AppTypography.bodySmall
                                 .copyWith(color: AppColors.danger)),
                       ],

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/treatments_controller.dart';
+import '../../core/utils/date_formatter.dart';
 import '../../models/patient_model.dart';
 import 'package:flutter_application_1/core/theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/status_badge.dart';
 import 'widgets/odontogram_widget.dart';
 import 'widgets/tooth_detail_panel.dart';
+import 'widgets/multi_tooth_panel.dart';
 import 'widgets/treatment_form_dialog.dart';
 import 'widgets/pending_treatments_dialog.dart';
+import '../invoices/widgets/create_invoice_dialog.dart';
 
 class TreatmentsView extends StatelessWidget {
   const TreatmentsView({super.key});
@@ -192,54 +195,118 @@ class TreatmentsView extends StatelessWidget {
                       }
                       return const SizedBox.shrink();
                     }),
+
+                    // Selected Patient Upcoming Appointment Pill (if any)
+                    Obx(() {
+                      final upcoming = controller.patientUpcomingAppointment.value;
+                      if (upcoming != null) {
+                        final parsed = DateFormatter.fromApiString(upcoming.appointmentDate);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.md,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.successLight,
+                            borderRadius: AppRadius.borderRadiusLg,
+                            border: Border.all(
+                              color: AppColors.success.withValues(alpha: 0.35),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.event_available_rounded,
+                                color: AppColors.successDark,
+                                size: 18,
+                              ),
+                              AppSpacing.hGap6,
+                              Text(
+                                'Prochain RDV : ${DateFormatter.formatMedium(parsed ?? DateTime.now())}',
+                                style: AppTypography.badgeSmall.copyWith(
+                                  color: AppColors.successDark,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    }),
                   ],
                 ),
 
                 // Top Action Buttons
-                Obx(() {
-                  final count = controller.pendingTreatments.length;
-                  return OutlinedButton.icon(
-                    onPressed: () => PendingTreatmentsDialog.show(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: AppSpacing.buttonPaddingLarge,
-                      foregroundColor: AppColors.warningDark,
-                      side: const BorderSide(color: AppColors.warning),
-                    ),
-                    icon: const Icon(Icons.pending_actions_rounded,
-                        size: 20, color: AppColors.warning),
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Soins en attente',
-                          style: AppTypography.button.copyWith(
-                            color: AppColors.warningDark,
-                          ),
+                Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.md,
+                  children: [
+                    Obx(() {
+                      final count = controller.pendingTreatments.length;
+                      return OutlinedButton.icon(
+                        onPressed: () => PendingTreatmentsDialog.show(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: AppSpacing.buttonPaddingLarge,
+                          foregroundColor: AppColors.warningDark,
+                          side: const BorderSide(color: AppColors.warning),
                         ),
-                        if (count > 0) ...[
-                          AppSpacing.hGap8,
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning,
-                              borderRadius: AppRadius.borderRadiusFull,
-                            ),
-                            child: Text(
-                              '$count',
-                              style: AppTypography.badgeSmall.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                        icon: const Icon(Icons.pending_actions_rounded,
+                            size: 20, color: AppColors.warning),
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Soins en attente',
+                              style: AppTypography.button.copyWith(
+                                color: AppColors.warningDark,
                               ),
                             ),
+                            if (count > 0) ...[
+                              AppSpacing.hGap8,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.warning,
+                                  borderRadius: AppRadius.borderRadiusFull,
+                                ),
+                                child: Text(
+                                  '$count',
+                                  style: AppTypography.badgeSmall.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }),
+                    Obx(() {
+                      final patient = controller.selectedPatient.value;
+                      if (patient?.id != null) {
+                        return ElevatedButton.icon(
+                          onPressed: () {
+                            CreateInvoiceDialog.show(context, patientId: patient!.id);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: AppSpacing.buttonPaddingLarge,
                           ),
-                        ],
-                      ],
-                    ),
-                  );
-                }),
+                          icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                          label: Text('Facturer ce patient',
+                              style: AppTypography.button),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    }),
+                  ],
+                ),
               ],
             ),
 
@@ -285,7 +352,9 @@ class TreatmentsView extends StatelessWidget {
                           children: [
                             mainPanel,
                             AppSpacing.vGap20,
-                            const ToothDetailPanel(),
+                            Obx(() => controller.isMultiSelectMode.value
+                                ? const MultiToothPanel()
+                                : const ToothDetailPanel()),
                           ],
                         ),
                       );
@@ -304,10 +373,14 @@ class TreatmentsView extends StatelessWidget {
 
                         AppSpacing.hGap20,
 
-                        // Right Inspector Panel: Tooth Detail Inspector
-                        const Expanded(
+                        // Right Inspector Panel: Tooth Detail or Multi-Tooth Panel
+                        Expanded(
                           flex: 4,
-                          child: ToothDetailPanel(),
+                          child: SingleChildScrollView(
+                            child: Obx(() => controller.isMultiSelectMode.value
+                                ? const MultiToothPanel()
+                                : const ToothDetailPanel()),
+                          ),
                         ),
                       ],
                     );

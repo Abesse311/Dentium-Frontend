@@ -88,6 +88,42 @@ class TreatmentsApi {
     }
   }
 
+  /// Create multiple treatments in bulk across multiple teeth
+  Future<List<TreatmentModel>> createTreatmentsBulk({
+    required int patientId,
+    required int treatmentTypeId,
+    required List<int> toothNumbers,
+    String status = 'planned',
+    double? price,
+    String? treatmentDate,
+    String? notes,
+    int? appointmentId,
+  }) async {
+    try {
+      final Map<String, dynamic> payload = {
+        'patient_id': patientId,
+        'treatment_type_id': treatmentTypeId,
+        'tooth_numbers': toothNumbers,
+        'status': status,
+        'price': ?price,
+        'treatment_date': ?treatmentDate,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+        'appointment_id': ?appointmentId,
+      };
+
+      final response = await _client.dio.post(
+        '${AppConstants.endpointTreatments}/bulk',
+        data: payload,
+      );
+      final List data = response.data as List;
+      return data
+          .map((json) => TreatmentModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ApiClient.handleError(e);
+    }
+  }
+
   /// Delete treatment
   Future<void> deleteTreatment(int id) async {
     try {

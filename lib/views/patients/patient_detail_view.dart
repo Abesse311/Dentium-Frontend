@@ -7,7 +7,9 @@ import '../../models/patient_model.dart';
 import 'package:flutter_application_1/core/theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/status_badge.dart';
+import '../../core/utils/invoice_item_grouper.dart';
 import 'widgets/patient_form_dialog.dart';
+import '../invoices/widgets/create_invoice_dialog.dart';
 
 class PatientDetailView extends StatefulWidget {
   final PatientModel patient;
@@ -201,6 +203,25 @@ class _PatientDetailViewState extends State<PatientDetailView>
           ),
 
           // Action Buttons
+          ElevatedButton.icon(
+            onPressed: () async {
+              final created = await CreateInvoiceDialog.show(
+                context,
+                patientId: patient.id,
+              );
+              if (created == true && patient.id != null) {
+                final controller = Get.find<PatientsController>();
+                controller.fetchPatientHistory(patient.id!);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: AppSpacing.buttonPadding,
+            ),
+            icon: const Icon(Icons.receipt_long_rounded, size: 16),
+            label: Text('Facturer', style: AppTypography.button),
+          ),
+          AppSpacing.hGap12,
           OutlinedButton.icon(
             onPressed: () => _editPatient(context),
             icon: const Icon(Icons.edit_outlined, size: 16),
@@ -433,8 +454,13 @@ class _PatientDetailViewState extends State<PatientDetailView>
                     AppSpacing.hGap8,
                     const Text('Traitements Réalisés'),
                     AppSpacing.hGap8,
-                    Obx(() => _buildCountBadge(
-                        controller.patientTreatments.length)),
+                    Obx(() {
+                      final grouped =
+                          InvoiceItemGrouperHistory.groupHistoryTreatments(
+                        controller.patientTreatments.toList(),
+                      );
+                      return _buildCountBadge(grouped.length);
+                    }),
                   ],
                 ),
               ),
@@ -476,59 +502,95 @@ class _PatientDetailViewState extends State<PatientDetailView>
                         'Les actes et soins dentaires pour ce patient apparaîtront ici.',
                   );
                 }
-                return ListView.separated(
-                  itemCount: treatments.length,
-                  separatorBuilder: (_, _) => AppSpacing.vGap8,
-                  itemBuilder: (context, index) {
-                    final item = treatments[index];
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xxl,
-                        vertical: AppSpacing.xl,
-                      ),
-                      decoration: AppDecorations.panelBg,
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.xs,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: AppRadius.borderRadiusMd,
-                            ),
-                            child: Text(
-                              item.toothLabel,
-                              style: AppTypography.badgeSmall.copyWith(
-                                color: AppColors.primary,
+                return Builder(
+                  builder: (context) {
+                    final grouped = InvoiceItemGrouperHistory.groupHistoryTreatments(
+                      treatments.toList(),
+                    );
+                    return ListView.separated(
+                      itemCount: grouped.length,
+                      separatorBuilder: (_, _) => AppSpacing.vGap8,
+                      itemBuilder: (context, index) {
+                        final item = grouped[index];
+                        final isGroup = item.count > 1;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xxl,
+                            vertical: AppSpacing.xl,
+                          ),
+                          decoration: AppDecorations.panelBg,
+                          child: Row(
+                            children: [
+                              // Arch / tooth badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                  vertical: AppSpacing.xs,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isGroup
+                                      ? AppColors.primary.withValues(alpha: 0.15)
+                                      : AppColors.primaryLight,
+                                  borderRadius: AppRadius.borderRadiusMd,
+                                  border: isGroup
+                                      ? Border.all(
+                                          color: AppColors.primary.withValues(alpha: 0.4),
+                                        )
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isGroup) ...[
+                                      Icon(
+                                        Icons.layers_rounded,
+                                        size: 12,
+                                        color: AppColors.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    Text(
+                                      item.archLabel,
+                                      style: AppTypography.badgeSmall.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: isGroup
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                          AppSpacing.hGap14,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.displayName,
-                                  style: AppTypography.formLabel,
+                              AppSpacing.hGap14,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.procedureName,
+                                      style: AppTypography.formLabel,
+                                    ),
+                                    Text(
+                                      item.subtitle,
+                                      style: AppTypography.bodySmall,
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  item.formattedDate,
-                                  style: AppTypography.bodySmall,
+                              ),
+                              StatusBadge.treatment(item.status),
+                              AppSpacing.hGap16,
+                              Text(
+                                item.formattedTotal,
+                                style: AppTypography.formLabel.copyWith(
+                                  fontWeight: isGroup
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          StatusBadge.treatment(item.status),
-                          AppSpacing.hGap16,
-                          Text(
-                            DateFormatter.formatCurrency(item.price),
-                            style: AppTypography.formLabel,
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
                 );

@@ -67,7 +67,7 @@ class InvoicesApi {
         'patient_id': patientId,
         'treatment_ids': treatmentIds,
         if (customItems != null && customItems.isNotEmpty)
-          'items': customItems,
+          'custom_items': customItems,
       };
 
       final response = await _client.dio.post(

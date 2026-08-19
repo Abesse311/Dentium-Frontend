@@ -5,6 +5,7 @@ import '../../models/invoice_model.dart';
 import 'package:flutter_application_1/core/theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/status_badge.dart';
+import '../../core/utils/invoice_item_grouper.dart';
 import 'widgets/add_payment_dialog.dart';
 
 class InvoiceDetailView extends StatelessWidget {
@@ -312,51 +313,85 @@ class InvoiceDetailView extends StatelessWidget {
           ),
           const Divider(height: 1),
 
-          if (invoice.items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-              child: Center(
-                child: Text(
-                  'Aucune prestation détaillée enregistrée.',
-                  style: AppTypography.bodySmall,
-                ),
-              ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: invoice.items.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final item = invoice.items[index];
+          Builder(
+            builder: (context) {
+              if (invoice.items.isEmpty) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.xl,
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 40,
-                        child: Text('${index + 1}',
-                            style: AppTypography.bodyMedium),
-                      ),
-                      Expanded(
-                        child: Text(
-                          item.description,
-                          style: AppTypography.formLabel,
-                        ),
-                      ),
-                      Text(
-                        item.formattedAmount,
-                        style: AppTypography.formLabel,
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+                  child: Center(
+                    child: Text(
+                      'Aucune prestation détaillée enregistrée.',
+                      style: AppTypography.bodySmall,
+                    ),
                   ),
                 );
-              },
-            ),
+              }
+
+              final groupedItems = InvoiceItemGrouper.groupInvoiceItems(invoice.items);
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: groupedItems.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final item = groupedItems[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.lg,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 40,
+                          child: Text(
+                            '${index + 1}',
+                            style: AppTypography.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                style: AppTypography.formLabel.copyWith(
+                                  fontWeight: item.count > 1
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
+                                ),
+                              ),
+                              if (item.subtitle != null) ...[
+                                AppSpacing.vGap2,
+                                Text(
+                                  item.subtitle!,
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.primaryDark,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Text(
+                          item.formattedTotal,
+                          style: AppTypography.formLabel.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
 
           const Divider(height: 1),
           AppSpacing.vGap12,
