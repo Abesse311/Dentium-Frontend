@@ -4,6 +4,7 @@ import '../../controllers/navigation_controller.dart';
 import 'package:flutter_application_1/core/theme.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/app_sidebar.dart';
+import 'package:flutter_application_1/views/analytics/analytics_view.dart';
 import 'package:flutter_application_1/views/appointments/appointments_view.dart';
 import 'package:flutter_application_1/views/dashboard/dashboard_view.dart';
 import 'package:flutter_application_1/views/invoices/invoices_view.dart';
@@ -24,6 +25,7 @@ class ShellView extends StatelessWidget {
       AppointmentsView(),
       TreatmentsView(),
       InvoicesView(),
+      AnalyticsView(),
       SettingsView(),
     ];
 

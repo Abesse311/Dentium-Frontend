@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class AppSpacing {
   // --- Raw Spacing Tokens ---
@@ -63,6 +63,8 @@ class AppSpacing {
   static const SizedBox hGap18 = SizedBox(width: 18);
   static const SizedBox hGap20 = SizedBox(width: 20);
   static const SizedBox hGap24 = SizedBox(width: 24);
+  static const SizedBox hGap28 = SizedBox(width: 28);
+  static const SizedBox hGap32 = SizedBox(width: 32);
 }
 
 

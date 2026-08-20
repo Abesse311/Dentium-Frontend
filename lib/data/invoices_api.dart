@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter_application_1/core/api_client.dart';
 import 'package:flutter_application_1/core/constants.dart';
 import '../models/invoice_model.dart';
@@ -97,6 +99,22 @@ class InvoicesApi {
   Future<void> deleteInvoice(int id) async {
     try {
       await _client.dio.delete('${AppConstants.endpointInvoices}/$id');
+    } catch (e) {
+      throw ApiClient.handleError(e);
+    }
+  }
+
+  /// Download invoice PDF as binary bytes
+  Future<Uint8List> getInvoicePdf(int id) async {
+    try {
+      final response = await _client.dio.get<List<int>>(
+        '${AppConstants.endpointInvoices}/$id/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (response.data == null) {
+        throw Exception('Données PDF vides reçues du serveur.');
+      }
+      return Uint8List.fromList(response.data!);
     } catch (e) {
       throw ApiClient.handleError(e);
     }

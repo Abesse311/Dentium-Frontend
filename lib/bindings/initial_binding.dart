@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../controllers/analytics_controller.dart';
 import '../controllers/appointments_controller.dart';
 import '../controllers/connectivity_controller.dart';
 import '../controllers/dashboard_controller.dart';
@@ -21,6 +22,7 @@ class InitialBinding extends Bindings {
     Get.put<AppointmentsController>(AppointmentsController(), permanent: true);
     Get.put<TreatmentsController>(TreatmentsController(), permanent: true);
     Get.put<InvoicesController>(InvoicesController(), permanent: true);
+    Get.put<AnalyticsController>(AnalyticsController(), permanent: true);
     Get.put<SettingsController>(SettingsController(), permanent: true);
   }
 }

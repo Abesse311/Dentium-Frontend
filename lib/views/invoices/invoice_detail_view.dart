@@ -156,24 +156,31 @@ class InvoiceDetailView extends StatelessWidget {
             AppSpacing.hGap12,
           ],
 
-          // Action: PDF Export Placeholder
-          Tooltip(
-            message:
-                'Fonction d\'exportation PDF prévue dans la phase suivante (pdf & printing).',
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Get.snackbar(
-                  'Export PDF',
-                  'L\'exportation PDF sera disponible dans la phase d\'impression.',
-                  backgroundColor: AppColors.infoLight,
-                  colorText: AppColors.info,
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              },
-              icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
-              label: Text('Exporter PDF', style: AppTypography.button),
-            ),
-          ),
+          // Action: PDF Export
+          Obx(() {
+            final controller = Get.find<InvoicesController>();
+            final isExporting = controller.isPdfExporting.value;
+
+            return OutlinedButton.icon(
+              onPressed: isExporting
+                  ? null
+                  : () => controller.exportInvoicePdf(invoice),
+              icon: isExporting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : const Icon(Icons.picture_as_pdf_outlined, size: 16),
+              label: Text(
+                isExporting ? 'Exportation...' : 'Exporter PDF',
+                style: AppTypography.button,
+              ),
+            );
+          }),
 
           AppSpacing.hGap10,
 

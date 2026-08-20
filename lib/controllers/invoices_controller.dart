@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_application_1/core/theme.dart';
@@ -26,6 +28,7 @@ class InvoicesController extends GetxController {
   final RxString searchQuery = ''.obs;
   final RxBool isLoading = false.obs;
   final RxBool isDetailLoading = false.obs;
+  final RxBool isPdfExporting = false.obs;
   final RxString errorMessage = ''.obs;
 
   @override
@@ -362,6 +365,87 @@ class InvoicesController extends GetxController {
         colorText: AppColors.danger,
         snackPosition: SnackPosition.BOTTOM,
       );
+    }
+  }
+
+  /// Export and download the invoice as a PDF file
+  Future<void> exportInvoicePdf(InvoiceModel invoice) async {
+    if (invoice.id == null) return;
+    if (isPdfExporting.value) return;
+
+    isPdfExporting.value = true;
+    try {
+      // 1. Fetch PDF binary bytes from backend
+      final pdfBytes = await _api.getInvoicePdf(invoice.id!);
+
+      // Clean filename for saving
+      final sanitizedNumber =
+          invoice.invoiceNumber.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final defaultFileName = 'facture_$sanitizedNumber.pdf';
+
+      // 2. Open Save File Dialog
+      final String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Enregistrer la facture PDF',
+        fileName: defaultFileName,
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      // User cancelled dialog
+      if (outputFile == null || outputFile.trim().isEmpty) {
+        return;
+      }
+
+      // Ensure .pdf extension
+      String finalPath = outputFile.trim();
+      if (!finalPath.toLowerCase().endsWith('.pdf')) {
+        finalPath = '$finalPath.pdf';
+      }
+
+      // 3. Write bytes to file
+      final file = File(finalPath);
+      await file.writeAsBytes(pdfBytes);
+
+      // 4. Success feedback with open action
+      Get.snackbar(
+        'Exportation réussie',
+        'La facture PDF a été enregistrée avec succès.',
+        backgroundColor: AppColors.successLight,
+        colorText: AppColors.successDark,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+        mainButton: TextButton.icon(
+          onPressed: () {
+            try {
+              if (Platform.isWindows) {
+                Process.run('cmd', ['/c', 'start', '', finalPath]);
+              }
+            } catch (_) {}
+          },
+          icon: const Icon(
+            Icons.open_in_new_rounded,
+            size: 16,
+            color: AppColors.successDark,
+          ),
+          label: Text(
+            'Ouvrir le PDF',
+            style: AppTypography.buttonSmall.copyWith(
+              color: AppColors.successDark,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Erreur d\'exportation PDF',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: AppColors.dangerLight,
+        colorText: AppColors.danger,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isPdfExporting.value = false;
     }
   }
 }

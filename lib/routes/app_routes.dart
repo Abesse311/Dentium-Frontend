@@ -1,11 +1,13 @@
 import 'package:get/get.dart';
 import '../bindings/initial_binding.dart';
+import '../bindings/analytics_binding.dart';
 import '../bindings/appointments_binding.dart';
 import '../bindings/dashboard_binding.dart';
 import '../bindings/invoices_binding.dart';
 import '../bindings/patients_binding.dart';
 import '../bindings/settings_binding.dart';
 import '../bindings/treatments_binding.dart';
+import '../views/analytics/analytics_view.dart';
 import '../views/appointments/appointments_view.dart';
 import '../views/dashboard/dashboard_view.dart';
 import '../views/invoices/invoices_view.dart';
@@ -21,6 +23,7 @@ class AppRoutes {
   static const String appointments = '/appointments';
   static const String treatments = '/treatments';
   static const String invoices = '/invoices';
+  static const String analytics = '/analytics';
   static const String settings = '/settings';
 
   static final List<GetPage> pages = [
@@ -58,6 +61,12 @@ class AppRoutes {
       name: invoices,
       page: () => const InvoicesView(),
       binding: InvoicesBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: analytics,
+      page: () => const AnalyticsView(),
+      binding: AnalyticsBinding(),
       transition: Transition.fadeIn,
     ),
     GetPage(

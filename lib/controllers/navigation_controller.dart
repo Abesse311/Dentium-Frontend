@@ -5,6 +5,7 @@ import 'patients_controller.dart';
 import 'appointments_controller.dart';
 import 'treatments_controller.dart';
 import 'invoices_controller.dart';
+import 'analytics_controller.dart';
 import 'settings_controller.dart';
 
 class NavItem {
@@ -59,6 +60,12 @@ class NavigationController extends GetxController {
       route: '/invoices',
     ),
     NavItem(
+      titleFr: 'Analyses & Revenus',
+      icon: Icons.analytics_outlined,
+      selectedIcon: Icons.analytics_rounded,
+      route: '/analytics',
+    ),
+    NavItem(
       titleFr: 'Paramètres',
       icon: Icons.settings_outlined,
       selectedIcon: Icons.settings_rounded,
@@ -98,6 +105,11 @@ class NavigationController extends GetxController {
           }
           break;
         case 5:
+          if (Get.isRegistered<AnalyticsController>()) {
+            Get.find<AnalyticsController>().fetchAnalytics();
+          }
+          break;
+        case 6:
           if (Get.isRegistered<SettingsController>()) {
             Get.find<SettingsController>().fetchSettings();
           }
