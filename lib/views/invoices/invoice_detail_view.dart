@@ -21,6 +21,38 @@ class InvoiceDetailView extends StatelessWidget {
     }
   }
 
+  Future<void> _confirmDeletePayment(BuildContext context, int paymentId, String amountStr) async {
+    final controller = Get.find<InvoicesController>();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Supprimer le règlement', style: AppTypography.h3),
+        content: Text(
+          'Voulez-vous supprimer ce règlement de $amountStr ? Le solde de la facture sera automatiquement recalculé.',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Annuler', style: AppTypography.button),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Supprimer', style: AppTypography.button),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && invoice.id != null) {
+      await controller.deletePayment(invoice.id!, paymentId);
+    }
+  }
+
   Future<void> _confirmDelete(BuildContext context) async {
     final controller = Get.find<InvoicesController>();
     final confirm = await showDialog<bool>(
@@ -530,6 +562,20 @@ class InvoiceDetailView extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (pay.id != null)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.textMuted,
+                            size: 18,
+                          ),
+                          tooltip: 'Supprimer ce règlement',
+                          onPressed: () => _confirmDeletePayment(
+                            context,
+                            pay.id!,
+                            pay.formattedAmount,
+                          ),
+                        ),
                     ],
                   ),
                 );

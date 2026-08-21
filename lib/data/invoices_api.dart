@@ -104,6 +104,15 @@ class InvoicesApi {
     }
   }
 
+  /// Delete a payment transaction
+  Future<void> deletePayment(int paymentId) async {
+    try {
+      await _client.dio.delete('/api/payments/$paymentId');
+    } catch (e) {
+      throw ApiClient.handleError(e);
+    }
+  }
+
   /// Download invoice PDF as binary bytes
   Future<Uint8List> getInvoicePdf(int id) async {
     try {

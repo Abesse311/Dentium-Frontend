@@ -88,7 +88,12 @@ class ApiClient {
             if (d is String) {
               detail = d;
             } else if (d is List) {
-              detail = d.map((item) => item['msg'] ?? item.toString()).join('\n');
+              detail = d.map((item) {
+                if (item is Map && item.containsKey('msg')) {
+                  return item['msg']?.toString() ?? item.toString();
+                }
+                return item?.toString() ?? '';
+              }).where((s) => s.isNotEmpty).join('\n');
             }
           }
           return ApiException(
@@ -112,7 +117,7 @@ class ApiClient {
   Future<bool> checkConnection() async {
     try {
       final response = await dio.get(
-        AppConstants.endpointSettings,
+        '/api/health',
         options: Options(
           sendTimeout: const Duration(seconds: 2),
           receiveTimeout: const Duration(seconds: 2),
@@ -122,7 +127,7 @@ class ApiClient {
     } catch (_) {
       try {
         final fallbackResponse = await dio.get(
-          '/docs',
+          AppConstants.endpointSettings,
           options: Options(
             sendTimeout: const Duration(seconds: 2),
             receiveTimeout: const Duration(seconds: 2),
@@ -130,7 +135,18 @@ class ApiClient {
         );
         return fallbackResponse.statusCode == 200;
       } catch (_) {
-        return false;
+        try {
+          final docsResponse = await dio.get(
+            '/docs',
+            options: Options(
+              sendTimeout: const Duration(seconds: 2),
+              receiveTimeout: const Duration(seconds: 2),
+            ),
+          );
+          return docsResponse.statusCode == 200;
+        } catch (_) {
+          return false;
+        }
       }
     }
   }

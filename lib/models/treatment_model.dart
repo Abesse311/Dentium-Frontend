@@ -122,6 +122,7 @@ class TreatmentModel {
   }
 
   bool get isGeneral => toothNumber == null || toothNumber == 0;
+  bool get isPerTooth => !isGeneral;
 
   String get displayName => treatmentTypeName ?? 'Traitement #$treatmentTypeId';
 

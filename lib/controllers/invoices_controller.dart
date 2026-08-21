@@ -328,6 +328,48 @@ class InvoicesController extends GetxController {
     }
   }
 
+  /// Delete a payment from an invoice
+  Future<bool> deletePayment(int invoiceId, int paymentId) async {
+    isLoading.value = true;
+    try {
+      await _api.deletePayment(paymentId);
+      await fetchInvoiceDetail(invoiceId);
+
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
+
+      if (Get.isRegistered<PatientsController>()) {
+        final patientsCtrl = Get.find<PatientsController>();
+        final patientId = selectedInvoice.value?.patientId;
+        if (patientId != null && patientsCtrl.selectedPatient.value?.id == patientId) {
+          patientsCtrl.fetchPatientHistory(patientId);
+        }
+      }
+
+      Get.snackbar(
+        'Règlement supprimé',
+        'Le règlement a été supprimé et le solde de la facture a été recalculé.',
+        backgroundColor: AppColors.surface,
+        colorText: AppColors.textPrimary,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Erreur lors de la suppression',
+        e.toString(),
+        backgroundColor: AppColors.dangerLight,
+        colorText: AppColors.danger,
+        icon: const Icon(Icons.error_outline_rounded, color: AppColors.danger),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   /// Delete an invoice
   Future<void> deleteInvoice(int invoiceId) async {
     try {
