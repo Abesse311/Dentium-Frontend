@@ -1,12 +1,12 @@
-﻿class AppConstants {
+class AppConstants {
   // Base API configuration
   static const String apiBaseUrl = 'http://127.0.0.1:8000';
   static const Duration connectTimeout = Duration(seconds: 5);
   static const Duration receiveTimeout = Duration(seconds: 5);
 
   // App Metadata
-  static const String appName = 'Cabinet Dentaire';
-  static const String appTagline = 'Gestion de Cabinet';
+  static const String appName = 'Dentium';
+  static const String appTagline = 'Cabinet Dentaire';
   static const String appVersion = '1.0.0';
 
   // API Endpoints
